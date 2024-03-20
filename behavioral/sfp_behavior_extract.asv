@@ -427,20 +427,6 @@ rels_mean = mean(rels,1);
 [rels_sort,argsort] = sort(rels_mean,'descend');
 behav_labs_sort = behav_labs(argsort);
 
-figure()
-bar(1:21,nanmean(rels))
-hold on
-errorbar(1:21,nanmean(rels),1.96*nanstd(rels)/sqrt(3),'.')
-c = {'r.','g.','b.'};
-for ss = 1:3
-    plot(1:21,rels(ss,:),c{ss})
-end
-xticks(1:21)
-xticklabels(behav_labs)
-xtickangle(90)
-yline(1/3)
-
-
 
 %% Correlations Fless
 corrmat_ = true;

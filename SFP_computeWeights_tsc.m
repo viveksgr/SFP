@@ -8,16 +8,19 @@ if sw
     % x1 = matrixToVecNoDiag(x1);
     % x2 = matrixToVecNoDiag(x2);
     % y = matrixToVecNoDiag(y);
-      x1 = extractOffDiagonalBlock(x1);
+    x1 = extractOffDiagonalBlock(x1);
     x2 = extractOffDiagonalBlock(x2);
     y = extractOffDiagonalBlock(y);
 end
+
 
 [r,~] = find(isnan([x1,x2,y]));
 x1(r,:)=[];
 x2(r,:)=[];
 y(r,:) = [];
 
+
+% corrcoef(y,x2)
 
 % Combine the regressors into a design matrix, including a column for the intercept
 X = [ones(length(x1), 1), x1(:), x2(:)];
@@ -56,19 +59,26 @@ vec(diagIndex) = [];
 end
 
 function A2 = extractOffDiagonalBlock(A)
-    % Ensure the input is a square matrix and its size is even
-    [rows, cols] = size(A);
-    if rows ~= cols || mod(rows, 2) ~= 0
-        error('Input must be a square matrix with even size.');
-    end
+% Ensure the input is a square matrix and its size is even
+[rows, cols] = size(A);
+% if rows ~= cols || mod(rows, 2) ~= 0
+%     error('Input must be a square matrix with even size.');
+% end
 
-    % Calculate the size of the blocks
+% Calculate the size of the blocks
+if mod(rows, 2) ~= 0
     blockSize = rows / 2;
-
-    % Extract the off-diagonal block (e.g., top-right block)
     A2 = A(1:blockSize, (blockSize + 1):end);
-    A2 = A2(:);
+else
+    blockSize = (rows+1) / 2;
+    A2 = A(1:blockSize, (blockSize):end);
+end
 
-    % Alternatively, to extract the bottom-left block, use:
-    % A2 = A((blockSize + 1):end, 1:blockSize);
+
+% Extract the off-diagonal block (e.g., top-right block)
+
+A2 = A2(:);
+
+% Alternatively, to extract the bottom-left block, use:
+% A2 = A((blockSize + 1):end, 1:blockSize);
 end

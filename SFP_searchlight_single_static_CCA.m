@@ -1,15 +1,16 @@
 %% General Settings
 root = 'C:\Work';
-nodor = 160;
-wind = 75; % Number of samples
+settings_.nodor = 160;
+settings_.wind = 75; % Number of samples
 
-% m_id = [8 13; 8 15; 11 16]; % N-wind
-% m_id = [13 61; 15 42; 16 41]; % N-wind
+% m_id = [8 13; 8 15; 11 16]; % N-settings_.wind
+% m_id = [13 61; 15 42; 16 41]; % N-settings_.wind
 % m_id = [3 4; 3 4; 3 4]; % INhale Exhale
-ncomps = [5 5 5 5];
-nsniffcomp = 14;
-ncomp_plt = 8;
-prfm_pca = false;
+settings_.ncomps = [5 5 5 5];
+settings_.nsniffcomp = 14;
+settings_.ncomp_plt = 8;
+settings_.prfm_pca = false;
+settings_.reg_mat = true;
 
 dirs = {fullfile(root ,'\SFP\sfp_behav_s01_correct');
         fullfile(root ,'\SFP\sfp_behav_s02_correct');
@@ -19,9 +20,9 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
         fullfile(root,'ARC\ARC\ARC02\single');
         fullfile(root,'ARC\ARC\ARC03\single')};
 
-dirs3 = {fullfile(root ,'\SFP\sfp_behav_s01_correct_basic2');
-        fullfile(root ,'\SFP\sfp_behav_s02_correct_basic2');
-        fullfile(root ,'\SFP\sfp_behav_s04_correct_basic2')};
+dirs3 = {fullfile(root ,'\SFP\sfp_behav_s01_correct_reg');
+        fullfile(root ,'\SFP\sfp_behav_s02_correct_reg');
+        fullfile(root ,'\SFP\sfp_behav_s04_correct_reg')};
 
 
 maskfile =  'ARC3_anatgw.nii';
@@ -31,10 +32,11 @@ anat_names = {'PC','AMY','OFC','OT','AON'};
 anat_masks = {'rwPC.nii','rwAmygdala.nii','rwofc.nii','rwOT.nii','rwAON.nii'};
 nanat = length(anat_names);
 
-fmasker = true; % Turn on the functional mask
-single_n = false; % Noisepool
-single_c = true; % Cutoff from sign voxels
-mapper = true;
+settings_.fmasker = true; % Turn on the functional mask
+settings_.single_n = false; % Noisepool
+settings_.single_c = true; % Cutoff from sign voxels
+settings_.mapper = true;
+settings_.loadvec = [3 4 9:14];
 
 % load(fullfile(statpath,'fir_cv.mat'))
 fprintf('\n')
@@ -59,11 +61,11 @@ for ss = [1 2 3] % Subject
 
     load(fullfile(statpath,'sfp_feats_main.mat'))
     Fless_mat = vertcat(fless_mat{:});
-    Fless_mat_pruned = Fless_mat(:,1:wind);
+    Fless_mat_pruned = Fless_mat(:,1:settings_.wind);
     
     Feat_mat_pruned = vertcat(feat_mat{:});
 
-    Feat_mat_pruned =  Feat_mat_pruned(:,[3 4 9:14]) ;
+    Feat_mat_pruned =  Feat_mat_pruned(:,[settings_.loadvec]) ;
 
     %% Gray Matter, Functional and Anatomical Masks
     mask = (spm_read_vols(spm_vol(fullfile(anatdir, maskfile)))); % Mask used to construct odor files
@@ -71,7 +73,7 @@ for ss = [1 2 3] % Subject
     mask = logical(mask);
     fmask = (spm_read_vols(spm_vol(fullfile(anatdir, fmaskfile)))); % Mask used to examine voxels in RSA
     fmask(isnan(fmask))=0;
-    if ~fmasker
+    if ~settings_.fmasker
         fmask = fmask +0.1;
     end
     fmask = logical(fmask); % Only choose voxels with significant odor evoked activity
@@ -106,9 +108,9 @@ for ss = [1 2 3] % Subject
     %% Defining RDMs
     onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
     onsets = onsets.onsets;
-    group_vec = cell(nodor,1);
+    group_vec = cell(settings_.nodor,1);
     unity = [];
-    for ii2 = 1:nodor
+    for ii2 = 1:settings_.nodor
         group_vec{ii2} = ii2*ones(length(onsets{ii2}),1);
         unity = blkdiag(unity,ones(length(onsets{ii2})));
     end
@@ -123,7 +125,6 @@ for ss = [1 2 3] % Subject
     behav_ratings = behav_ratings(group_vec,:);
     behav_mat = corrcoef(behav_ratings');
     
-
     % CCA
     % Assuming F1 is 4320x8 and F2 is 4320x18
     % Remove constant columns from F1
@@ -147,22 +148,31 @@ for ss = [1 2 3] % Subject
 
     % Apply canonical correlation analysis
     [F1_coeff, F2_coeff, r, U,V,stats] = canoncorr(F1_no_near_constant, F2_no_near_constant);
+
+
     
-    for plt = 1:ncomp_plt
+
+
+    
+    for plt = 1:settings_.ncomp_plt
         sbplt = sbplt+1;
-        subplot(3,ncomp_plt,sbplt) 
+        subplot(3,settings_.ncomp_plt,sbplt) 
         bar(F1_coeff(:,plt))    
         % xticklabels({'Inflow','ExFlow','Time Peak','Time Trough','InVol','ExVol','InDur','ExDur'})
         title(sprintf('CCA%01d r:%.2f',plt,r(plt)))
     end
 
-    U = U(:,1:ncomps(ss));
+    U = U(:,1:settings_.ncomps(ss));
 
-    if prfm_pca
+    if settings_.prfm_pca
         [~,A1_mat] = pca(F1_std);
-        A1_mat = A1_mat(:,1:ncomps(ss));
+        A1_mat = A1_mat(:,1:settings_.ncomps(ss));
     else
-        A1_mat = F1_std;
+        if settings_.reg_mat
+            A1_mat = SFP_multiregressmeout(F1_std, F2_no_near_constant);
+        else
+            A1_mat = F1_std;
+        end
     end
 
 
@@ -176,7 +186,7 @@ for ss = [1 2 3] % Subject
         modelmd_ = load(fullfile(anatdir,'desniff',anat_names{ii},'TYPEC_FITHRF_GLMDENOISE.mat'),'modelmd','noisepool');
         modelmd = squeeze(modelmd_.modelmd);
         noisepool = modelmd_.noisepool;
-        if single_c
+        if settings_.single_c
             modelmd = modelmd(masks_set_cell{ii},:);
             noisepool = noisepool(masks_set_cell{ii});
         end
@@ -227,7 +237,7 @@ for ss = [1 2 3] % Subject
         rsa_P1_{ss,ii,1} = rsa_vec_1;
         rsa_P1_{ss,ii,2} = rsa_vec_2;
 
-        if mapper
+        if settings_.mapper
             rsa_vec_1 = unmasker(rsa_vec_1,logical(anatmasks(:,:,:,ii)));
             rsa_vec_2 = unmasker(rsa_vec_2,logical(anatmasks(:,:,:,ii)));
             write_reshaped_nifty(rsa_vec_1, savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_peak_%s',ss,anat_names{ii}));
@@ -238,8 +248,8 @@ for ss = [1 2 3] % Subject
     end
     close(h)
 end
-savefig(fullfile(savepath,'CCA_neg'))
-print(fullfile(savepath,'CCA_neg.png'),'-dpng')
+savefig(fullfile(savepath,'CCA'))
+print(fullfile(savepath,'CCA.png'),'-dpng')
 
 
 % rsa_P1_pvals = cellfun(@(x) r2p(x,nchoosek(ntrials,2)),rsa_P1_,'UniformOutput',false);
@@ -292,8 +302,8 @@ ylabel('Representational Similarity (%)')
 savefig(fullfile(savepath,'ARC_RSA_sign_comp_neg'))
 print(fullfile(savepath,'ARC_RSA_sign_comp_neg'),'-dpng')
 
-clear Fmat_1_m behav_mat unity M_anat M_reg n_reg M_unstack fless_mat fless_mat_unn modelmd_ modelmd S_omat_vals utl_mask utl_mask2
-save(fullfile(savepath,'ARC_RSA_neg')) 
+% clear Fmat_1_m behav_mat unity M_anat M_reg n_reg M_unstack fless_mat fless_mat_unn modelmd_ modelmd S_omat_vals utl_mask utl_mask2
+save(fullfile(savepath,'ARC_RSA'),'settings','rsa_P1') 
 
 %% Bar plots of Valence and Salience as a function of other dims
 barplotter = false;
@@ -334,26 +344,30 @@ end
 
 
 %% Normalize the images into MNI space
-img_nrmr = false;
+img_nrmr = true;
 tic
+dirs3 = {fullfile(root ,'\SFP\sfp_behav_s01_cluster');
+    fullfile(root ,'\SFP\sfp_behav_s02_cluster');
+    fullfile(root ,'\SFP\sfp_behav_s04_cluster')};
 for s = 1:3
     matlabbatch = [];
-    dirs = {'C:\Data\NEMO\NEMO_01\imaging\nii\master_anat\meansNEMO_01_set1_sess1-0015-00001-000176-01.nii'
-        'C:\Data\NEMO\NEMO_02\imaging\nii\anat\sNEMO02.nii'
-        'C:\Data\NEMO\NEMO_04\imaging\nii\anat\sNEMO04.nii'};
-    wdir = pwd;
-%     f2 = dir(fullfile(wdir,sprintf('S%01d',s),'spmT_0006.nii'));
-    f2 = dir(fullfile(wdir,sprintf('sfp_behav_s%02d',s),'rsa_vec_fless.nii'));
+    dirs = {'C:\Work\ARC\ARC\ARC01\masks\sNEMO01.nii'
+        'C:\Work\ARC\ARC\ARC02\masks\sNEMO02.nii'
+        'C:\Work\ARC\ARC\ARC03\masks\sNEMO04.nii'};
+
+    wdir = dirs3{s};
+    %     f2 = dir(fullfile(wdir,sprintf('S%01d',s),'spmT_0006.nii'));
+    f2 = dir(fullfile(wdir,'SFP*.nii'));
 
     files = {};
-    for zz = 1:length(f2); files{zz,1} = fullfile(wdir,sprintf('sfp_behav_s%02d',s),f2(zz).name); end
-    
+    for zz = 1:length(f2); files{zz,1} = fullfile(wdir,f2(zz).name); end
+
     if img_nrmr
         matlabbatch{1}.spm.spatial.normalise.estwrite.subj.vol = {dirs{s}};
-        matlabbatch{1}.spm.spatial.normalise.estwrite.subj.resample = files;
+        matlabbatch{1}.spm.spatial.normalise.estwrite.subj.resample = files; 
         matlabbatch{1}.spm.spatial.normalise.estwrite.eoptions.biasreg = 0.0001;
         matlabbatch{1}.spm.spatial.normalise.estwrite.eoptions.biasfwhm = 60;
-        matlabbatch{1}.spm.spatial.normalise.estwrite.eoptions.tpm = {'C:\Toolboxes\spm12\tpm\TPM.nii'};
+        matlabbatch{1}.spm.spatial.normalise.estwrite.eoptions.tpm = {'C:\Work\Tools\spm12\tpm\TPM.nii'};
         matlabbatch{1}.spm.spatial.normalise.estwrite.eoptions.affreg = 'mni';
         matlabbatch{1}.spm.spatial.normalise.estwrite.eoptions.reg = [0 0.001 0.5 0.05 0.2];
         matlabbatch{1}.spm.spatial.normalise.estwrite.eoptions.fwhm = 0;
@@ -368,27 +382,30 @@ for s = 1:3
 end
 toc
 %% Image averager
-img_avg = false;
-ntrials = 4320;
-thr = r2t(0.05,nchoosek(ntrials,2));
+img_avg = true;
+
+anat_names = {'PC','AMY','OFC','OT','AON'}; 
+
 if img_avg
-    outpurdir = 'C:\Data\SFP\neural';
-    dirs = {'C:\Data\SFP\sfp_behav_s01'
-            'C:\Data\SFP\sfp_behav_s02'
-            'C:\Data\SFP\sfp_behav_s03'};
+    outpurdir = 'C:\Work\SFP\Clustering';
+    dirs = {'C:\Work\SFP\sfp_behav_s01_cluster'
+            'C:\Work\SFP\sfp_behav_s02_cluster'
+            'C:\Work\SFP\sfp_behav_s04_cluster'};
 %           outpurdir = 'C:\Data\ARC\ARC\val_glm\val-sal\basic';
 %     dirs = {'C:\Data\ARC\ARC\val_glm\val-sal\basic\S1'
 %             'C:\Data\ARC\ARC\val_glm\val-sal\basic\S2'
 %             'C:\Data\ARC\ARC\val_glm\val-sal\basic\S3'};
+
+
     files = {};
     for ss = 1:3
-        f2 = dir(fullfile(dirs{ss},'wrsa_vec_fless.nii'));
+        f2 = dir(fullfile(dirs{ss},'w*.nii'));
         for zz = 1:length(f2); files{zz,ss} = fullfile(dirs{ss},f2(zz).name); end
     end
     
     for ff = 1:size(files,1)
         iminput = files(ff,:)';
-        fname = files{ff,1}(end-8:end-4);
+        fname = files{ff,1}(end-15:end-4);
         matlabbatch = [];
         
         matlabbatch{1}.spm.util.imcalc.input = iminput;

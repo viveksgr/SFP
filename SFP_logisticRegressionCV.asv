@@ -1,0 +1,77 @@
+function avgAccuracy = SFP_logisticRegressionCV(y, g)
+    % Ensure y and g are the correct size
+    if size(y, 1) ~= size(g, 1)
+        error('The number of observations in y and g must be the same.');
+    end
+
+    % Convert y to categorical if it isn't already
+    if ~iscategorical(y)
+        y = categorical(y);
+    end
+    
+    % Number of observations
+    N = size(y, 1);
+    
+    % Number of folds for cross-validation
+    K = 10;
+    
+    % Generate indices for K-fold cross-validation
+    cvIndices = crossvalind('Kfold', y, K);
+    
+    % Initialize array to store accuracy for each fold
+    accuracies = zeros(K, 1);
+    
+    % Perform K-fold CV
+    for k = 1:K
+        % fprintf('Processing fold %d/%d...\n', k, K);
+
+        % Indices for the current fold
+        testIdx = (cvIndices == k);
+        trainIdx = ~testIdx;
+        
+        % Training and test sets
+        yTrain = y(trainIdx);
+        gTrain = g(trainIdx, :);
+        
+        yTest = y(testIdx);
+        gTest = g(testIdx, :);
+        
+        % Fit the multinomial logistic regression model on the training set
+        B = mnrfit(gTrain, yTrain);
+        
+        % Predict probabilities on the test set
+        yPredProb = mnrval(B, gTest);
+        
+        % Convert predicted probabilities to class labels
+        [~, yPred] = max(yPredProb, [], 2);
+        yTestNum = grp2idx(yTest);
+        
+        % Compute accuracy for the current fold
+        accuracies(k) = sum(yPred == yTestNum) / length(yTestNum);
+
+        K = sum(yPred == yTestNum); 
+    end
+    
+    % Compute average accuracy across all folds
+    avgAccuracy = mean(accuracies);
+
+    % Total number of observations (for all folds)
+    N = size(y, 1); % or sum up the test set sizes for each fold if they vary
+    
+    % Total number of correct predictions
+    K = sum(yPred == yTestNum across all folds); % This needs to be calculated in your loop
+    
+    % Chance performance level
+    numCategories = numel(unique(y));
+    pChance = 1 / numCategories;
+    
+    % Compute the p-value using a binomial test
+    % MATLAB's binocdf computes the cumulative distribution function of the binomial distribution
+    % We use 1 - binocdf to get the tail probability: the probability of observing
+    % at least K correct predictions under the null hypothesis
+    pValue = 1 - binocdf(K-1, N, pChance); % K-1 for "at least K successes"
+    
+    
+    % Display the average accuracy
+    % disp(['Average accuracy across all folds: ', num2str(avgAccuracy)]);
+end
