@@ -343,6 +343,7 @@ end
 
 %% Behavioral quantification
 % Sniffing modulation
+tic
 grp_ = true;
 rootf = 'C:\Work\SFP\Final_plots\Behavioral';
 if grp_
@@ -404,9 +405,9 @@ nS = 3;
 behav_lab1 = behav.behav(1).percepts;
 behav_lab2 = behav.behav(2).percepts;
 
-for ii=1:nS
-    behav(ii).rel(end+1)=0;
-end
+% for ii=1:nS
+%     behav(ii).rel(end+1)=0;
+% end
 
 idx2 = [1:10 19 11:14 19 15 19 16:18]; % Use this is argsort in sub(2 and 3) to match the labels
 idx1 = [1:18 19 19 19];
@@ -427,33 +428,65 @@ rels_mean = mean(rels,1);
 [rels_sort,argsort] = sort(rels_mean,'descend');
 behav_labs_sort = behav_labs(argsort);
 
+figure()
+bar(1:21,nanmean(rels))
+hold on
+errorbar(1:21,nanmean(rels),1.96*nanstd(rels)/sqrt(3),'.')
+c = {'r.','g.','b.'};
+for ss = 1:3
+    plot(1:21,rels(ss,:),c{ss})
+end
+xticks(1:21)
+xticklabels(behav_labs)
+xtickangle(90)
+yline(1/3)
 
-%% Correlations Fless
+toc
+
+%% RSA
+root = 'C:\Work';
 corrmat_ = true;
 if corrmat_
-    nodor = 160;
-    wind = 3500; % Number of samples
-    dwn = 50;
-    dirs = {'C:\Work\SFP\sfp_behav_s01_correct';
-        'C:\Work\SFP\sfp_behav_s02_correct';
-        'C:\Work\SFP\sfp_behav_s04_correct'};
-    %   color = [0.8500 0.3250 0.0980; 0.9290 0.6940 0.1250; 0.3010 0.7450 0.9330; 0 0.4470 0.7410];
+    settings_.nodor = 160;
+    settings_.wind = 7500; % Number of samples
+    settings_.nsniffcomp = 32;
+    settings_.loadvec = [3 4 9:settings_.nsniffcomp];
+    settings_.featorflessnot = true;
+
+    dirs = {fullfile(root ,'\SFP\sfp_behav_s01_correct');
+        fullfile(root ,'\SFP\sfp_behav_s02_correct');
+        fullfile(root ,'\SFP\sfp_behav_s04_correct')};
+
+    dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
+        fullfile(root,'ARC\ARC\ARC02\single');
+        fullfile(root,'ARC\ARC\ARC03\single')};
+
     behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
-
+    savepath = 'C:\Work\SFP\Final_plots\Basic RSA';
     hold on
-    corrmod = zeros(3,5);
+    nconds = 4;
+    rsa_P1 = zeros(3,nconds);
     for ss = 1:length(dirs)
-        load(fullfile(dirs{ss},'sfp_feats_corrected.mat'))
-        % % fless_mat{1,19}(:,701:end) = [];
+        fprintf('Subject: %02d\n',ss)
+        if ss==3; s2 = 4; else; s2 = ss; end
+        statpath = dirs{ss};
+        anatdir = dirs2{ss};
+        % savepath = dirs3{ss};
+        mkdir(savepath)
+
+        load(fullfile(statpath,'sfp_feats_main.mat'))
+        load(fullfile(statpath,'task_struct.mat'))
         Fless_mat = vertcat(fless_mat{:});
-        anatdir = fullfile('C:\Work\ARC\ARC\',sprintf('ARC%02d',ss),'single');
+        Fless_mat_pruned = Fless_mat(:,1:settings_.wind);
 
-        if ss==3; s2 = 4; else; s2 = ss; end
+        Feat_mat_pruned = vertcat(feat_mat{:});
+        Feat_mat_pruned =  Feat_mat_pruned(:,[settings_.loadvec]) ;
+
         onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
         onsets = onsets.onsets;
-        group_vec = cell(nodor,1);
+        group_vec = cell(settings_.nodor,1);
         unity = [];
-        for ii2 = 1:nodor
+        for ii2 = 1:settings_.nodor
             group_vec{ii2} = ii2*ones(length(onsets{ii2}),1);
             unity = blkdiag(unity,ones(length(onsets{ii2})));
         end
@@ -461,144 +494,212 @@ if corrmat_
         [~,argsort] = sort(vertcat(onsets{:}));
         group_vec = group_vec(argsort);
         unity = unity(argsort,argsort);
-        utl_mask = logical(triu(ones(length(unity)),1)); % All possible odors
+        utl_mask = logical(triu(ones(length(unique(group_vec))),1)); % All possible odors
 
-        Fless_mat_pruned = Fless_mat(:,1:dwn:wind);
-        Fless_corr = corrcoef(Fless_mat_pruned');
-        Fless_corr(isnan(Fless_corr))=0;
-
-        % Behavioral features
+        % Behavioral RSMs
         behav_ratings = behav.behav(ss).ratings;
-        behav_ratings_ =  behav_ratings(group_vec,:);
 
-        b1 = corrcoef(behav_ratings_')';
-        temp = corrcoef(b1,Fless_corr);
-        corrmod(ss,1) = temp(2);
+        if settings_.featorflessnot; mainmat = Feat_mat_pruned; else; mainmat = Fless_mat_pruned; end
+        mainmat(isnan(mainmat))=0;
 
-        bint = corrcoef(behav_ratings_(:,2:end)')';
-        temp = corrcoef(bint,Fless_corr);
-        corrmod(ss,2) = temp(2);
-
-        bpls = corrcoef(behav_ratings_(:,[1 3:end])')';
-        temp = corrcoef(bpls,Fless_corr);
-        corrmod(ss,3) = temp(2);
-
-        rpls = regressmeout(behav_ratings(:,[1 3:end])',repmat(behav_ratings(:,2)',17,1));
-        rpls = rpls(:,group_vec);
-        bpls = corrcoef(rpls);
-        temp = corrcoef(bpls,Fless_corr);
-        corrmod(ss,4) = temp(2);
+        if settings_.featorflessnot
+            mainmat = zscore(mainmat,[],1);
+        end
         
-        rint = regressmeout(behav_ratings(:,[2:end])',repmat(behav_ratings(:,1)',17,1));
-        rint = rint(:,group_vec);
-        brint = corrcoef(rint);
-        temp = corrcoef(brint,Fless_corr);
-        corrmod(ss,5) = temp(2);
+        A2 = splitapply(@mean,mainmat,group_vec);
+        A2_corr = corrcoef(A2');
 
+        behav_corr = corrcoef(behav_ratings');
+        int_corr = -abs(behav_ratings(:,1)-behav_ratings(:,1)');
+        pls_corr = -abs(behav_ratings(:,2)-behav_ratings(:,2)');
+
+
+        [~,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask)  task_struct(utl_mask) task_run(utl_mask)], behav_corr(utl_mask));
+        rsa_P1(ss,1) = t_sc(2);
      
+        [~,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask) int_corr(utl_mask) task_struct(utl_mask) task_run(utl_mask)], behav_corr(utl_mask));
+        rsa_P1(ss,2) = t_sc(2);
+
+       [~,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask) pls_corr(utl_mask) task_struct(utl_mask) task_run(utl_mask)], behav_corr(utl_mask));
+        rsa_P1(ss,3) = t_sc(2);
+
+        [~,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask) int_corr(utl_mask)  pls_corr(utl_mask) task_struct(utl_mask) task_run(utl_mask)], behav_corr(utl_mask));
+        rsa_P1(ss,4) = t_sc(2);
+
     end
-
-
-    figure('Position',[0.5 0.5 640 480])
-    bar(mean(corrmod))
+    S_mat = squeeze(mean(rsa_P1));
+    S_err = squeeze(std(rsa_P1))./sqrt(3);
+    figure('Position',[0.5 0.5 400 250])
     hold on
-    errorbar([1:5],mean(corrmod),std(corrmod)/sqrt(3),'.')
-    cs = {'r','g','b'};
-    for ss = 1:3
-        plot([1:5],corrmod(ss,:),cs{ss})
-    end
-    yline(r2t(0.05,nchoosek(length(utl_mask),2)))
-    ylabel('representational similarity')
-    xticks([1:5])
-    xticklabels({'All','-Int','-Pls','-Pls (reg)','- Int (reg)',})
-end
-
-%% Correlations Fmat
-
-%  corrmat_ = true;
-if corrmat_
-    nodor = 160;
-    dirs = {'C:\Data\SFP\sfp_behav_s01';
-        'C:\Data\SFP\sfp_behav_s02';
-        'C:\Data\SFP\sfp_behav_s03'};
-    %   color = [0.8500 0.3250 0.0980; 0.9290 0.6940 0.1250; 0.3010 0.7450 0.9330; 0 0.4470 0.7410];
-    behav = load(fullfile('C:\Data\ARC\ARC','NEMO_perceptual2.mat'));
-
-    hold on
-    corrmod = zeros(3,5);
-    for ss = 1:length(dirs)
-        load(fullfile(dirs{ss},'sfp_feats.mat'))
-        Fless_mat = vertcat(feat_mat{:});
-        anatdir = fullfile('C:\Data\ARC\',sprintf('ARC%02d',ss),'single');
-
-        if ss==3; s2 = 4; else; s2 = ss; end
-        onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
-        onsets = onsets.onsets;
-        group_vec = cell(nodor,1);
-        unity = [];
-        for ii2 = 1:nodor
-            group_vec{ii2} = ii2*ones(length(onsets{ii2}),1);
-            unity = blkdiag(unity,ones(length(onsets{ii2})));
+    ngroups = size(S_mat, 1);
+    nbars = size(S_mat, 2);
+    bar(1:nconds,S_mat);
+    errorbar(1:nconds,S_mat,S_err,'.')
+    yline(tinv(0.95,sum(utl_mask(:))))
+ 
+    % legend({'Perceptual','Chemical','Mutual'})
+    % legend()
+    % Subject data points
+    c_s = {'r','g','b'}; % Data dots for subjects
+        for jj = 1:3
+            plot([1:nconds],squeeze(rsa_P1(jj,:)),c_s{jj},'handle','off')
         end
-        group_vec = vertcat(group_vec{:});
-        [~,argsort] = sort(vertcat(onsets{:}));
-        group_vec = group_vec(argsort);
-        unity = unity(argsort,argsort);
-        utl_mask = logical(triu(ones(length(unity)),1)); % All possible odors
+    % legend('S_I','S_O','sniff col.','neural collinearity')
+    xticks(1:4)
+    xticklabels({'Sniff RSA','-Int','-Pls','-Int-Pls'})
+    ylabel('Representational Similarity (t)')
+    % yline(r2t(0.05,sum(utl_mask2(:))));
+    % yline(r2t(0.05,nchoosek(length( group_vec),2)));
+    savefig(fullfile(savepath,'feat_map'))
+    print(fullfile(savepath,'feat_map'),'-dpng')
 
-        Fless_mat_pruned = Fless_mat(:,[3 4 9:14]);
-        Fless_mat_pruned(isnan(Fless_mat_pruned))=0;
-        %                 sum(isnan( Fless_mat_pruned(:)))
-        Fless_corr = pdist(Fless_mat_pruned);
-        Fless_corr = 1-squareform(Fless_corr);
-
-        %         Fless_corr = corrcoef(Fless_mat_pruned','rows','pairwise');
-
-        % Behavioral features
-        behav_ratings = behav.behav(ss).ratings;
-        behav_ratings_ =  behav_ratings(group_vec,:);
-
-        b1 = corrcoef(behav_ratings_')';
-        temp = corrcoef(b1,Fless_corr);
-        corrmod(ss,1) = temp(2);
-
-        bint = corrcoef(behav_ratings_(:,2:end)')';
-        temp = corrcoef(bint,Fless_corr);
-        corrmod(ss,2) = temp(2);
-
-        bpls = corrcoef(behav_ratings_(:,[1 3:end])')';
-        temp = corrcoef(bpls,Fless_corr);
-        corrmod(ss,3) = temp(2);
-
-        rint = regressmeout(behav_ratings(:,[2:end])',repmat(behav_ratings(:,1)',17,1));
-        rint = rint(:,group_vec);
-        brint = corrcoef(rint);
-        temp = corrcoef(brint,Fless_corr);
-        corrmod(ss,4) = temp(2);
-
-        rpls = regressmeout(behav_ratings(:,[1 3:end])',repmat(behav_ratings(:,2)',17,1));
-        rpls = rpls(:,group_vec);
-        bpls = corrcoef(rpls);
-        temp = corrcoef(bpls,Fless_corr);
-        corrmod(ss,5) = temp(2);
-    end
+    % clear Fmat_1_m behav_mat unity M_anat M_reg n_reg M_unstack fless_mat fless_mat_unn modelmd_ modelmd S_omat_vals utl_mask utl_mask2
+    save(fullfile(savepath,'ARC_RSA'),'settings_','rsa_P1')
 end
+
+%% Raw Sniff plots
+
+% Use ss = 2 and extract group_vec, Fless_mat_pruned for s 2
+s1s = Fless_mat_pruned(group_vec==157,:);
+s2s = Fless_mat_pruned(group_vec==142,:);
+% plot(s1s','r')
+% hold on
+% plot(s2s','b')
 
 figure()
-bar(mean(corrmod))
+shaded_plot(1:size(s1s,2),mean(s1s),std(s1s)/sqrt(size(s1s,1)),'r')
 hold on
-errorbar([1:5],mean(corrmod),std(corrmod)/sqrt(3),'.')
-cs = {'r','g','b'};
-for ss = 1:3
-    plot([1:5],corrmod(ss,:),cs{ss})
-end
-yline(r2t(0.05,nchoosek(length(utl_mask),2)))
-ylabel('representational similarity')
-xticks([1:5])
-xticklabels({'All','-Int','-Pls','Int reg','Pls reg'})
-savefig('Feats')
-print('Feats','-dpng')
+shaded_plot(1:size(s1s,2),mean(s2s),std(s2s)/sqrt(size(s2s,1)),'b')
+xticks([0 2500 5000 7500])
+xticklabels([0 2.5 5 7.5])
+xlabel('Time(s)')
+ylabel('Sniff flow (AU)')
+legend('3-(5-Methyl-2-furyl)butanal','Ethyl 2-methylpentanoate')
 
+%% RSA - Trial-wise
+
+root = 'C:\Work';
+corrmat_ = true;
+if corrmat_
+    settings_.nodor = 160;
+    settings_.wind = 7500; % Number of samples
+    settings_.nsniffcomp = 32;
+    settings_.loadvec = [3 4 9:settings_.nsniffcomp];
+    settings_.featorflessnot = false;
+
+    dirs = {fullfile(root ,'\SFP\sfp_behav_s01_correct');
+        fullfile(root ,'\SFP\sfp_behav_s02_correct');
+        fullfile(root ,'\SFP\sfp_behav_s04_correct')};
+
+    dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
+        fullfile(root,'ARC\ARC\ARC02\single');
+        fullfile(root,'ARC\ARC\ARC03\single')};
+
+    behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
+    savepath = 'C:\Work\SFP\Final_plots\Trialwise RSA';
+    hold on
+    nconds = 4;
+    rsa_P1 = zeros(3,nconds,2);
+    for ss = 1:length(dirs)
+        fprintf('Subject: %02d\n',ss)
+        if ss==3; s2 = 4; else; s2 = ss; end
+        statpath = dirs{ss};
+        anatdir = dirs2{ss};
+        % savepath = dirs3{ss};
+        mkdir(savepath)
+
+        load(fullfile(statpath,'sfp_feats_main.mat'))
+        load(fullfile(statpath,'task_struct_trialwise.mat'))
+        Fless_mat = vertcat(fless_mat{:});
+        Fless_mat_pruned = Fless_mat(:,1:settings_.wind);
+
+        Feat_mat_pruned = vertcat(feat_mat{:});
+        Feat_mat_pruned =  Feat_mat_pruned(:,[settings_.loadvec]) ;
+
+        onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
+        onsets = onsets.onsets;
+        group_vec = cell(settings_.nodor,1);
+        unity = [];
+        for ii2 = 1:settings_.nodor
+            group_vec{ii2} = ii2*ones(length(onsets{ii2}),1);
+            unity = blkdiag(unity,ones(length(onsets{ii2})));
+        end
+        group_vec = vertcat(group_vec{:});
+        [~,argsort] = sort(vertcat(onsets{:}));
+        group_vec = group_vec(argsort);
+        unity = unity(argsort,argsort);
+        utl_mask = logical(triu(ones(length(group_vec)),1)); % All possible odors
+
+        % Behavioral RSMs
+        behav_ratings = behav.behav(ss).ratings(group_vec,:);
+
+        if settings_.featorflessnot; mainmat = Feat_mat_pruned; else; mainmat = Fless_mat_pruned; end
+        mainmat(isnan(mainmat))=0;
+
+        if settings_.featorflessnot
+            mainmat = zscore(mainmat,[],1);
+        end
+       
+        % A2_corr = corrcoef(mainmat');
+
+        A2_corr = pdost
+
+        behav_corr = corrcoef(behav_ratings');
+        int_corr = -abs(behav_ratings(:,1)-behav_ratings(:,1)');
+        pls_corr = -abs(behav_ratings(:,2)-behav_ratings(:,2)');
+
+        [~,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], A2_corr(utl_mask) );
+        rsa_P1(ss,1,1) = t_sc(2);
+        rsa_P1(ss,1,2) = t_sc(3);
+
+        [~,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) int_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
+        rsa_P1(ss,2,1) = t_sc(2);
+        rsa_P1(ss,2,2) = t_sc(3);
+
+        [~,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) pls_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
+        rsa_P1(ss,3,1) = t_sc(2);
+        rsa_P1(ss,3,2) = t_sc(3);
+
+        [~,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) int_corr(utl_mask)  pls_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
+        rsa_P1(ss,4,1) = t_sc(2);
+        rsa_P1(ss,4,2) = t_sc(3);
+    end
+
+    S_mat = squeeze(mean(rsa_P1));
+    S_err = squeeze(std(rsa_P1))./sqrt(3);
+    figure('Position',[0.5 0.5 400 250])
+    hold on
+    ngroups = size(S_mat, 1);
+    nbars = size(S_mat, 2);
+    bar(S_mat);
+    % Calculating the width for each bar group
+    groupwidth = min(0.8, nbars/(nbars + 1.5));
+    x_m = [];
+    for i = 1:nbars
+        x = (1:ngroups) - groupwidth/2 + (2*i-1)*groupwidth/(2*nbars);
+        errorbar(x, S_mat(:,i), S_err(:,i), 'k.');
+        x_m = [x_m; x];
+    end
+    
+    % Subject data points
+    c_s = {'r','g','b'}; % Data dots for subjects
+    for ii = 1:nconds % For bars for perceptual, chemical and combinations
+        for jj = 1:3
+            plot(x_m(:,ii),squeeze(rsa_P1(jj,ii,:)),c_s{jj},'handle','off')
+        end
+    end
+    yline(tinv(0.95,sum(utl_mask(:))))
+    xticks(1:4)
+    xticklabels({'Sniff RSA','-Int','-Pls','-Int-Pls'})
+    ylabel('Representational Similarity (t)')
+    legend({'Perceptual similarity','Odor trial similarity'})
+    % yline(r2t(0.05,sum(utl_mask2(:))));
+    % yline(r2t(0.05,nchoosek(length( group_vec),2)));
+    savefig(fullfile(savepath,'fless_map'))
+    print(fullfile(savepath,'fless_map'),'-dpng')
+    % clear Fmat_1_m behav_mat unity M_anat M_reg n_reg M_unstack fless_mat fless_mat_unn modelmd_ modelmd S_omat_vals utl_mask utl_mask2
+    save(fullfile(savepath,'ARC_RSA_fless'),'settings_','rsa_P1')
+end
 %% RSA time-series
 corrmat_ = true;
 dwnsample = 100;

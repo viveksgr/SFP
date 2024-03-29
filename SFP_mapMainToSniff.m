@@ -1,4 +1,7 @@
-function indices = SFP_mapMainToSniff(onsets_main, onsets_sniff)
+function indices = SFP_mapMainToSniff(onsets_sniff)
+
+    onsets_list = vertcat(onsets_sniff{:});
+    onsets_main = sort(onsets_list);
     % Initialize the output variable with zeros
     indices = zeros(size(onsets_main));
     
