@@ -22,15 +22,15 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
         fullfile(root,'ARC\ARC\ARC02\single');
         fullfile(root,'ARC\ARC\ARC03\single')};
 
-savepath = 'C:\Work\SFP\basicneural';
+savepath = 'C:\Work\SFP\Neural_RSA';
 maskfile =  'ARC3_anatgw.nii';
 fmaskfile = 'ARC3_fanatgw3.nii'; 
 
-% anat_names = {'PC','AMY','OFC','OT','AON'}; 
-% anat_masks = {'rwPC.nii','rwAmygdala.nii','rwofc.nii','rwOT.nii','rwAON.nii'};
+anat_names = {'PC','AMY','OFC','OT','AON'}; 
+anat_masks = {'rwPC.nii','rwAmygdala.nii','rwofc.nii','rwOT.nii','rwAON.nii'};
 
-anat_names = {'PC','AMY','OFC'}; 
-anat_masks = {'rwPC.nii','rwAmygdala.nii','rwofc.nii'};
+% anat_names = {'PC','AMY','OFC'}; 
+% anat_masks = {'rwPC.nii','rwAmygdala.nii','rwofc.nii'};
 nanat = length(anat_names);
 
 settings_.fmasker = true; % Turn on the functional mask
@@ -59,7 +59,7 @@ for ss = [1 2 3] % Subject
     % mkdir(savepath)
 
     load(fullfile(statpath,'sfp_feats_main.mat'))
-    load(fullfile(statpath,'task_struct.mat'))
+    load(fullfile(statpath,'task_struct_trialwise.mat'))
     Fless_mat = vertcat(fless_mat{:});
     Fless_mat_pruned = Fless_mat(:,1:settings_.wind);
     
@@ -117,20 +117,23 @@ for ss = [1 2 3] % Subject
     [~,argsort] = sort(vertcat(onsets{:}));
     group_vec = group_vec(argsort);
     unity = unity(argsort,argsort);
-    utl_mask = logical(triu(ones(length(unique(group_vec))),1)); % All possible odors
+    utl_mask = logical(triu(ones(length((group_vec))),1)); % All possible odors
 
+    behav_ratings = behav.behav(ss).ratings(group_vec,:);
     % Behavioral RSMs
-    behav_ratings = behav.behav(ss).ratings;
-
     if settings_.featorflessnot; mainmat = Feat_mat_pruned; else; mainmat = Fless_mat_pruned; end
     mainmat(isnan(mainmat))=0;
 
-     if settings_.featorflessnot 
-         mainmat = zscore(mainmat,[],1);
-     end
-    A2 = splitapply(@mean,mainmat,group_vec);
-    A2_ = SFP_splitapply_mean(mainmat,group_vec);
-    A2_corr = corrcoef(A2');
+    if settings_.featorflessnot
+        mainmat = zscore(mainmat,[],1);
+        % A2_corr = corrcoef(mainmat');
+    else
+        % A2_corr = pdist(mainmat,"spearman");
+        % A2_corr = 1-squareform(A2_corr);
+    end
+    A2_corr = pdist(mainmat,"euclidean");
+    A2_corr = 1-squareform(A2_corr);
+
     behav_corr = corrcoef(behav_ratings');
     
     %% Representational connectivity
@@ -151,33 +154,63 @@ for ss = [1 2 3] % Subject
         S_omat_vals_r(r1,:) = [];
         % M_anat = 1-corrcoef(S1_omat_vals);
 
-        M2 = SFP_splitapply_mean(S_omat_vals_r',group_vec);
-        M2 = zscore(M2,[],1);
+        M2 = zscore(S_omat_vals_r',[],1);
         M2_anat = corrcoef(M2');
         
-        [~,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask) behav_corr(utl_mask) task_struct(utl_mask) task_run(utl_mask)], M2_anat(utl_mask));
+        [~,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask) behav_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], M2_anat(utl_mask));
         rsa_P1(ss,ii,1) = t_sc(2);
         rsa_P1(ss,ii,2) = t_sc(3);
     end
 end
 rsa_pvals = tcdf(rsa_P1,sum(utl_mask,'all'),'upper');
 
-S_mat = squeeze(mean(rsa_P1));
+% S_mat = squeeze(mean(rsa_P1));
+% rsa_pvals_mean = tcdf(S_mat,sum(utl_mask,'all'),'upper');
+% S_err = squeeze(std(rsa_P1))./sqrt(3);
+% figure('Position',[0.5 0.5 400 250])
+% hold on
+% ngroups = size(S_mat, 1);
+% nbars = size(S_mat, 2);
+% bar(S_mat);
+% % Calculating the width for each bar group
+% groupwidth = min(0.8, nbars/(nbars + 1.5));
+% x_m = [];
+% for i = 1:nbars
+%     x = (1:ngroups) - groupwidth/2 + (2*i-1)*groupwidth/(2*nbars);
+%     errorbar(x, S_mat(:,i), S_err(:,i), 'k.');
+%     x_m = [x_m; x];
+% end
+% yline(tinv(0.95,sum(utl_mask(:))))
+% xticks(1:nanat)
+% xticklabels(anat_names);
+% % legend({'Perceptual','Chemical','Mutual'})
+% % legend()
+% % Subject data points
+% c_s = {'r','g','b'}; % Data dots for subjects
+% for ii = 1:nanat % For bars for perceptual, chemical and combinations
+%     for jj = 1:3
+%         plot(x_m(:,ii),squeeze(rsa_P1(jj,ii,:)),c_s{jj},'handle','off')
+%     end
+% end
+% % legend('S_I','S_O','sniff col.','neural collinearity')
+% legend('Sniff','Percept')
+% ylabel('Representational Similarity (t)')
+% % yline(r2t(0.05,sum(utl_mask2(:))));
+% % yline(r2t(0.05,nchoosek(length( group_vec),2)));
+% savefig(fullfile(savepath,'feat_map'))
+% print(fullfile(savepath,'feat_map'),'-dpng')
+% 
+% % clearvars fless_mat mainmat Fless_mat_pruned Fless_mat unity task_run set_run sess_run anat_cell
+% % clear Fmat_1_m behav_mat unity M_anat M_reg n_reg M_unstack fless_mat fless_mat_unn modelmd_ modelmd S_omat_vals utl_mask utl_mask2
+% save(fullfile(savepath,'ARC_RSA')) 
+
+rsa_P1(:,:,2) = [];
+S_mat = squeeze(mean(rsa_P1(:,:,1)));
 rsa_pvals_mean = tcdf(S_mat,sum(utl_mask,'all'),'upper');
 S_err = squeeze(std(rsa_P1))./sqrt(3);
 figure('Position',[0.5 0.5 400 250])
 hold on
-ngroups = size(S_mat, 1);
-nbars = size(S_mat, 2);
-bar(S_mat);
-% Calculating the width for each bar group
-groupwidth = min(0.8, nbars/(nbars + 1.5));
-x_m = [];
-for i = 1:nbars
-    x = (1:ngroups) - groupwidth/2 + (2*i-1)*groupwidth/(2*nbars);
-    errorbar(x, S_mat(:,i), S_err(:,i), 'k.');
-    x_m = [x_m; x];
-end
+errorbar(1:nanat,S_mat,S_err,'.')
 yline(tinv(0.95,sum(utl_mask(:))))
 xticks(1:nanat)
 xticklabels(anat_names);
@@ -185,11 +218,11 @@ xticklabels(anat_names);
 % legend()
 % Subject data points
 c_s = {'r','g','b'}; % Data dots for subjects
-for ii = 1:nanat % For bars for perceptual, chemical and combinations
+
     for jj = 1:3
-        plot(x_m(:,ii),squeeze(rsa_P1(jj,ii,:)),c_s{jj},'handle','off')
+        plot([1:nanat],squeeze(rsa_P1(jj,:,1)),c_s{jj},'handle','off')
     end
-end
+
 % legend('S_I','S_O','sniff col.','neural collinearity')
 legend('Sniff','Percept')
 ylabel('Representational Similarity (t)')
@@ -198,7 +231,7 @@ ylabel('Representational Similarity (t)')
 savefig(fullfile(savepath,'feat_map'))
 print(fullfile(savepath,'feat_map'),'-dpng')
 
-clearvars fless_mat mainmat Fkess_mat_pruned Fless_mat unity task_run set_run sess_run anat_cell
+% clearvars fless_mat mainmat Fless_mat_pruned Fless_mat unity task_run set_run sess_run anat_cell
 % clear Fmat_1_m behav_mat unity M_anat M_reg n_reg M_unstack fless_mat fless_mat_unn modelmd_ modelmd S_omat_vals utl_mask utl_mask2
 save(fullfile(savepath,'ARC_RSA')) 
 

@@ -240,6 +240,7 @@ for ss = [1 2 3] % Subject
     close(h)
 end
 
+rsa_P1(3,)
 rsa_P1 = cellfun(@(x) (sum(x> tinv(0.99,sum(utl_mask,'all')))./length(x))*100,rsa_P1_);
 ARC_barplot(rsa_P1)
 gcf
@@ -259,7 +260,7 @@ gcf
 xticks(1:nanat)
 xticklabels(anat_names);
 % r2t(0.05,length(A2_corr_vec))
-legend('S_I>S_O','S_O','Unclassified')
+legend('S_I>S_O','S_O>S_I','Unclassified')
 ylabel('Representational Similarity (%)')
 savefig(fullfile(savepath,'feat_map_comp'))
 print(fullfile(savepath,'feat_map_comp'),'-dpng')

@@ -1,7 +1,7 @@
 function ARC_barplot(rsa_P1)
 
-S_mat = squeeze(mean(rsa_P1));
-S_err = squeeze(std(rsa_P1))./sqrt(3);
+S_mat = squeeze(nanmean(rsa_P1));
+S_err = squeeze(nanstd(rsa_P1))./sqrt(3);
 figure('Position',[0.5 0.5 400 250])
 hold on
 ngroups = size(S_mat, 1);

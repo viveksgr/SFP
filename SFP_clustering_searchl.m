@@ -9,9 +9,9 @@ settings_.wind = 7500; % Number of samples
 % m_id = [3 4; 3 4; 3 4]; % INhale Exhale
 settings_.ncomps = [5 5 5 5];
 settings_.nsniffcomp = 32;
-settings_.featorflessnot = false;
-settings_.numClusters = 160;
-settings_.numClusters2 = 160;
+settings_.featorflessnot = true;
+settings_.numClusters = 60;
+settings_.numClusters2 = 60;
 settings_.clustbehav = true;
 settings_.sniffupdate = false;
 settings_.mapper = false;
@@ -24,7 +24,7 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
     fullfile(root,'ARC\ARC\ARC02\single');
     fullfile(root,'ARC\ARC\ARC03\single')};
 
-savepath = 'C:\Work\SFP\Clustering\tmp';
+savepath = 'C:\Work\SFP\Clustering\Feat_main_updated';
 maskfile =  'ARC3_anatgw.nii';
 fmaskfile = 'ARC3_fanatgw3.nii';
 
@@ -240,7 +240,9 @@ for ss = [1 2 3] % Subject
     close(h)
 end
 
+
 rsa_P1 = cellfun(@(x) (sum(x> tinv(0.99,sum(utl_mask,'all')))./length(x))*100,rsa_P1_);
+rsa_P1(3,5,:) = nan;
 ARC_barplot(rsa_P1)
 gcf
 % yline(r2t(0.05,length(M1_anat_vec)))

@@ -22,15 +22,15 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
         fullfile(root,'ARC\ARC\ARC02\single');
         fullfile(root,'ARC\ARC\ARC03\single')};
 
-savepath = 'C:\Work\SFP\basicneural';
+savepath = 'C:\Work\SFP\Neural_RSA';
 maskfile =  'ARC3_anatgw.nii';
 fmaskfile = 'ARC3_fanatgw3.nii'; 
 
-% anat_names = {'PC','AMY','OFC','OT','AON'}; 
-% anat_masks = {'rwPC.nii','rwAmygdala.nii','rwofc.nii','rwOT.nii','rwAON.nii'};
+anat_names = {'PC','AMY','OFC','OT','AON'}; 
+anat_masks = {'rwPC.nii','rwAmygdala.nii','rwofc.nii','rwOT.nii','rwAON.nii'};
 
-anat_names = {'PC','AMY','OFC'}; 
-anat_masks = {'rwPC.nii','rwAmygdala.nii','rwofc.nii'};
+% anat_names = {'PC','AMY','OFC'}; 
+% anat_masks = {'rwPC.nii','rwAmygdala.nii','rwofc.nii'};
 nanat = length(anat_names);
 
 settings_.fmasker = true; % Turn on the functional mask

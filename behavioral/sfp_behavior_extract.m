@@ -101,8 +101,8 @@ if create_sfpfeats
                     R_val = R(end)*ones(1,length(R_y));
                     R = [R(tr:end) R_val];
                 end
-                %
-                %           % smooth
+                
+                % smooth
                 R = smoothdata(R,'movmean',250)';
                 if s==1
                     R = [0; diff(R)];
@@ -446,6 +446,7 @@ toc
 %% RSA
 root = 'C:\Work';
 corrmat_ = true;
+numpcs = [14 11 11]; % 90% Variance
 if corrmat_
     settings_.nodor = 160;
     settings_.wind = 7500; % Number of samples
@@ -481,6 +482,14 @@ if corrmat_
 
         Feat_mat_pruned = vertcat(feat_mat{:});
         Feat_mat_pruned =  Feat_mat_pruned(:,[settings_.loadvec]) ;
+        
+    
+        Feat_mat_pruned(isnan(Feat_mat_pruned))=0;
+        Feat_mat_pruned = zscore(Feat_mat_pruned,1);
+
+        [coeff,Feat_mat_pruned,~,~,var] = pca(Feat_mat_pruned);
+        Feat_mat_pruned = Feat_mat_pruned(:,1:numpcs(ss));
+
 
         onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
         onsets = onsets.onsets;
@@ -577,7 +586,7 @@ ylabel('Sniff flow (AU)')
 legend('3-(5-Methyl-2-furyl)butanal','Ethyl 2-methylpentanoate')
 
 %% RSA - Trial-wise
-
+numpcs = [14 11 11]; % 90% Variance
 root = 'C:\Work';
 corrmat_ = true;
 if corrmat_
@@ -596,7 +605,7 @@ if corrmat_
         fullfile(root,'ARC\ARC\ARC03\single')};
 
     behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
-    savepath = 'C:\Work\SFP\Final_plots\Trialwise RSA';
+    savepath = 'C:\Work\SFP\Final_plots\Behavioral\Trialwise RSA';
     hold on
     nconds = 4;
     rsa_P1 = zeros(3,nconds,2);
@@ -615,6 +624,12 @@ if corrmat_
 
         Feat_mat_pruned = vertcat(feat_mat{:});
         Feat_mat_pruned =  Feat_mat_pruned(:,[settings_.loadvec]) ;
+           Feat_mat_pruned(isnan(Feat_mat_pruned))=0;
+        Feat_mat_pruned = zscore(Feat_mat_pruned,1);
+
+        [coeff,Feat_mat_pruned,~,~,var] = pca(Feat_mat_pruned);
+        Feat_mat_pruned = Feat_mat_pruned(:,1:numpcs(ss));
+
 
         onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
         onsets = onsets.onsets;
@@ -710,7 +725,7 @@ if corrmat_
     wind = 75; % Number of samples
     dirs = {'C:\Work\SFP\sfp_behav_s01_correct';
         'C:\Work\SFP\sfp_behav_s02_correct';
-        'C:\Work\SFP\sfp_behav_s03_correct'};
+        'C:\Work\SFP\sfp_behav_s04_correct'};
     %   color = [0.8500 0.3250 0.0980; 0.9290 0.6940 0.1250; 0.3010 0.7450 0.9330; 0 0.4470 0.7410];
     behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
 
@@ -720,8 +735,7 @@ if corrmat_
     corrmod_pls = zeros(3,wind);
     sniff_trace = zeros(3,wind);
     for ss = 1:length(dirs)
-        ss
-        load(fullfile(dirs{ss},'sfp_feats_corrected.mat'))
+        load(fullfile(dirs{ss},'sfp_feats_main.mat'))
         Fless_mat = vertcat(fless_mat{:});
         anatdir = fullfile('C:\Work\ARC\ARC\',sprintf('ARC%02d',ss),'single');
 
@@ -1237,8 +1251,7 @@ for ss = 1:length(dirs)
 
 end
 toc
-figure()
-m = mean(corrmod,1);
+figure() = mean(corrmod,1);
 bar(m)
 hold on
 errorbar([1:size(corrmod,2)],m,std(corrmod),'.')
