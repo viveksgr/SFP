@@ -1,9 +1,14 @@
-function ARC_barplot(rsa_P1)
+function ARC_barplot(rsa_P1,sw)
+if nargin<2
+    sw = true;
+end
 
 S_mat = squeeze(nanmean(rsa_P1));
 S_err = squeeze(nanstd(rsa_P1))./sqrt(3);
+if sw
 figure('Position',[0.5 0.5 400 250])
 hold on
+end
 ngroups = size(S_mat, 1);
 nbars = size(S_mat, 2);
 bar(S_mat);

@@ -6,7 +6,7 @@ settings_.wind = 7500; % Number of samples
 
 % m_id = [8 13; 8 15; 11 16]; % N-settings_.wind
 % m_id = [13 61; 15 42; 16 41]; % N-settings_.wind
-% m_id = [3 4; 3 4; 3 4]; % INhale Exhale
+% m_id = [3 4; 3 4; 3 4]; % Inhale Exhale
 settings_.ncomps = [5 5 5 5];
 settings_.nsniffcomp = 32;
 settings_.featorflessnot = true;
@@ -24,7 +24,7 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
     fullfile(root,'ARC\ARC\ARC02\single');
     fullfile(root,'ARC\ARC\ARC03\single')};
 
-savepath = 'C:\Work\SFP\Clustering\Feat_main_updated';
+savepath = 'C:\Work\SFP\Clustering\Feat_main_updated2';
 maskfile =  'ARC3_anatgw.nii';
 fmaskfile = 'ARC3_fanatgw3.nii';
 

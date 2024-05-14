@@ -1,4 +1,3 @@
-% Create SPM.mat for odor detection - check activity in pyriform
 s = 4;
 n_volumes = 876; % Number of volumes 856 for S1, 876 for S2, S3;
 sn = sprintf('NEMO_%02d', s);
@@ -115,18 +114,6 @@ if create_sfpfeats
                 %             fig = bmObj.plotCompositions('line');
 
 
-
-                % % % % Old method
-                % % % t2 = bmObj.time(bmObj.inhaleOnsets);
-                % % % t_star = find_nearest(t2,onset_set);
-                % % % t_on2 = bmObj.inhaleOnsets(t_star);
-                % % % if adjuster
-                % % %     load(fullfile(statpath,'corr_adjust',sprintf('Adjust_onsets_Subject_%01d-Set_%01d-Session_%01d-Run_%01d.mat',s,set_,sess,rr)),'adjust_onsets')
-                % % %     t_on = adjust_onsets';
-                % % % else
-                % % %     t_on = t_on2;
-                % % % end
-                
                 % Correct method 
                 if adjuster
                     load(fullfile(statpath,'corr_adjust',sprintf('Adjust_onsets_Subject_%01d-Set_%01d-Session_%01d-Run_%01d.mat',s,set_,sess,rr)),'adjust_onsets')
@@ -159,22 +146,6 @@ if create_sfpfeats
                 % peak times
                 peak_times = bmObj.inhalePeaks(t_star);
                 assert(sum(peak_times<t_on)==0,'Peak times must always be less than inhale onsets' )
-
-                % 
-                % % % computing the sniff information - featureless extrapolated, only useful for
-                % % % plotting
-                % fless_superset = zeros(1,fless_maxsize);
-                % for trial = 1:length(onset_set)
-                %     n_diff = abs((t_off(trial)-t_on(trial)+1)-fless_maxsize);
-                %     if fless_maxsize>=(t_off(trial)-t_on(trial)+1)
-                %         fless_nexttrial = cat(2,R(t_on(trial):t_off(trial))',R  (t_off(trial))*ones(1,n_diff));                   
-                %     else
-                %         fless_nexttrial = R(t_on(trial):t_on(trial)+fless_maxsize-1)';
-                %     end
-                %      fless_superset = cat(1,fless_superset,fless_nexttrial);
-                % end
-                % fless_superset(1,:) = [];
-                % fless_mat{r} = fless_superset(:,1:dwnsample:end);
 
 
                 % computing the sniff information - at peaks
@@ -1250,19 +1221,19 @@ for ss = 1:length(dirs)
     end
 
 end
-toc
-figure() m = mean(corrmod,1);
-bar(m)
-hold on
-errorbar([1:size(corrmod,2)],m,std(corrmod),'.')
-c = {'r','g','b'};
-for ss = 1:3; plot([1:size(corrmod,2)],corrmod(ss,:),c{ss},'Marker','.','Markersize',10); end
-ylabel('Sniff RSA')
-% yline(r2t(0.05,nchoosek(4560,2)))
-xticks([1:size(corrmod,2)])
-xticklabels({'Sniff type','Odor type','Sniff type adj'})
-xtickangle(45)
-% yline(r2t(0.05,12720))
-
-yline(1.65)
+% toc
+% figure() = mean(corrmod,1);
+% bar(m)
+% hold on
+% errorbar([1:size(corrmod,2)],m,std(corrmod),'.')
+% c = {'r','g','b'};
+% for ss = 1:3; plot([1:size(corrmod,2)],corrmod(ss,:),c{ss},'Marker','.','Markersize',10); end
+% ylabel('Sniff RSA')
+% % yline(r2t(0.05,nchoosek(4560,2)))
+% xticks([1:size(corrmod,2)])
+% xticklabels({'Sniff type','Odor type','Sniff type adj'})
+% xtickangle(45)
+% % yline(r2t(0.05,12720))
+% 
+% yline(1.65)
 end
