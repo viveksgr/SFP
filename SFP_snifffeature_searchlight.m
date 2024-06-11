@@ -21,7 +21,7 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
     fullfile(root,'ARC\ARC\ARC02\single');
     fullfile(root,'ARC\ARC\ARC03\single')};
 
-savepath = 'C:\Work\SFP\Clustering\Feat_main_updated';
+savepath = 'C:\Work\SFP\Clustering\Feat_main_updated_tsc';
 maskfile =  'ARC3_anatgw.nii';
 fmaskfile = 'ARC3_fanatgw3.nii';
 
@@ -173,30 +173,15 @@ for ss = [1 2 3] % Subject
         n_vox(ss,ii,:) = [sum(mod_vox) sum(raw_vox)];
         if min(sum(raw_vox),sum(mod_vox))>10
             A2_corr = SFP_extractUpperTriangles(mainmat,utl_mask);
+            
+            M2_anat = corrcoef(S_omat_vals_r( raw_vox,:));
+            [wt,t_sc] = ARC_multicomputeWeights_tsc([A2_corr task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], M2_anat(utl_mask));
+            rsa_P1(ss,ii,:,1) = wt(2:end-3);
 
-            if settings_.multiregress
-                M2_anat = corrcoef(S_omat_vals_r( raw_vox,:));
-                [wt,t_sc] = ARC_multicomputeWeights_tsc([A2_corr task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], M2_anat(utl_mask));
-                rsa_P1(ss,ii,:,1) = wt(2:end-3);
-
-                M2_anat = corrcoef(S_omat_vals_r( mod_vox,:));
-                [wt,t_sc] = ARC_multicomputeWeights_tsc([A2_corr  task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], M2_anat(utl_mask));
-                rsa_P1(ss,ii,:,2) = wt(2:end-3);
-            else
-                for pp = 1:size(mainmat,2)
-                    M2_anat = corrcoef(S_omat_vals_r( raw_vox,:));
-                    A2_corr = -abs(mainmat(:, pp) - mainmat(:, pp)');
-                    [wt,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], M2_anat(utl_mask));
-                    rsa_P1(ss,ii,pp,1) = t_sc(2);
-
-
-                    M2_anat = corrcoef(S_omat_vals_r( mod_vox,:));
-                    [wt,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask)  task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], M2_anat(utl_mask));
-                    rsa_P1(ss,ii,pp,2) = t_sc(2);
-                end
-                % rsa_P1(ss,ii,:,1)=rsa_P1(ss,ii,:,1)./mean(abs(rsa_P1(ss,ii,:,1)));
-                % rsa_P1(ss,ii,:,2)=rsa_P1(ss,ii,:,2)./mean(abs(rsa_P1(ss,ii,:,2)));
-            end
+            M2_anat = corrcoef(S_omat_vals_r( mod_vox,:));
+            [wt,t_sc] = ARC_multicomputeWeights_tsc([A2_corr  task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], M2_anat(utl_mask));
+            rsa_P1(ss,ii,:,2) = wt(2:end-3);
+           
         end
     end
 end

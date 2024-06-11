@@ -14,6 +14,7 @@ settings_.numClusters = 60;
 settings_.numClusters2 = 60;
 settings_.clustbehav = true;
 settings_.sniffupdate = false;
+settings_.loadcluster = true;
 
 dirs = {fullfile(root ,'\SFP\sfp_behav_s01_correct');
         fullfile(root ,'\SFP\sfp_behav_s02_correct');
@@ -23,7 +24,7 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
         fullfile(root,'ARC\ARC\ARC02\single');
         fullfile(root,'ARC\ARC\ARC03\single')};
 
-savepath = 'C:\Work\SFP\Clustering\Feat_main_updated';
+savepath = 'C:\Work\SFP\Clustering\Feat_main_nonsearchl';
 maskfile =  'ARC3_anatgw.nii';
 fmaskfile = 'ARC3_fanatgw3.nii'; 
 
@@ -47,6 +48,9 @@ behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
 
 hold on
 sbplt = 0;
+totalMI = zeros(3,nanat);
+pvalues = zeros(3,nanat);
+
 for ss = [1 2 3] % Subject
     fprintf('Subject: %02d\n',ss)
     if ss==3; s2 = 4; else; s2 = ss; end
@@ -116,7 +120,13 @@ for ss = [1 2 3] % Subject
         idx =  SFP_mapMainToSniff(onsets);
         A1 = SFP_splitapply_mean(mainmat,idx);
     else
-        [idx,A1] = kmeans(mainmat,settings_.numClusters,'Distance',dister,'Replicates',1);
+        if settings_.loadcluster
+            load(fullfile('C:\Work\SFP\Clustering\Feat_main_updated_tsc','ARC_RSA.mat'),'idxmats')
+            idx = idxmats{ss,1};
+            A1 =  SFP_splitapply_mean(mainmat,idx);
+        else 
+            [idx,A1] = kmeans(mainmat,settings_.numClusters,'Distance',dister,'Replicates',1);
+        end
     end
     A1_corr = corrcoef(A1');
 
@@ -136,8 +146,11 @@ for ss = [1 2 3] % Subject
     % Behavioral RSMs
     behav_ratings = behav.behav(ss).ratings;
     behav_ratings = behav_ratings(group_vec,:);
-
-    [idx2,A1] = kmeans(behav_ratings,settings_.numClusters2,'Replicates',1);
+    if settings_.loadcluster
+        idx2 = idxmats{ss,2};
+    else
+        [idx2] = kmeans(behav_ratings,settings_.numClusters2,'Replicates',1);
+    end
     if settings_.clustbehav; group_vec = idx2; end
     A2 = SFP_splitapply_mean(mainmat,group_vec);
     A2_corr = corrcoef(A2');
@@ -161,6 +174,9 @@ for ss = [1 2 3] % Subject
         M1 = zscore(M1,[],1);
         M2 = SFP_splitapply_mean(S_omat_vals_r',group_vec);
         M2 = zscore(M2,[],1);
+        [totalMI(ss,ii), pValues(ss,ii)] = sfP_MI(M1, M2, 1000);
+
+
 
         M1_anat = corrcoef(M1');
         M2_anat = corrcoef(M2');
