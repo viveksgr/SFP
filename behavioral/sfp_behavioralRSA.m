@@ -5,10 +5,12 @@ corrmat_ = true;
 if corrmat_
     settings_.nodor = 160;
     settings_.wind = 7500; % Number of samples
-    settings_.nsniffcomp = 32;
+    settings_.nsniffcomp = 31;
     settings_.loadvec = [3 4 9:settings_.nsniffcomp];
     settings_.featorflessnot = true;
-     rsa_pvals = zeros(3,4);
+    settings_.chem = true;
+    if  settings_.chem; delfeat = 1; else; delfeat = 0; end
+    rsa_pvals = zeros(3,4);
 
     dirs = {fullfile(root ,'\SFP\sfp_behav_s01_correct');
         fullfile(root ,'\SFP\sfp_behav_s02_correct');
@@ -19,11 +21,11 @@ if corrmat_
         fullfile(root,'ARC\ARC\ARC03\single')};
 
     behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
-    savepath = 'C:\Work\SFP\Final_plots\Behavioral\Trialwise RSA\temp';
+    savepath = 'C:\Work\SFP\Final_plots\Behavioral\Trialwise RSA\Chem';
     hold on
     nconds = 4;
-    rsa_P1 = zeros(3,nconds,2);
-    rsa_P1t = zeros(3,nconds,2);
+    rsa_P1 = zeros(3,nconds,2+delfeat);
+    rsa_P1t = zeros(3,nconds,2+delfeat);
     for ss = 1:length(dirs)
         fprintf('Subject: %02d\n',ss)
         if ss==3; s2 = 4; else; s2 = ss; end
@@ -80,31 +82,59 @@ if corrmat_
         int_corr = -abs(behav_ratings(:,1)-behav_ratings(:,1)');
         pls_corr = -abs(behav_ratings(:,2)-behav_ratings(:,2)');
 
+
         [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], A2_corr(utl_mask) );
-        rsa_P1(ss,1,1:2) = wt(2:3);
-        rsa_P1t(ss,1,1:2) = t_sc(2:3);
+        if settings_.chem
+            load(fullfile(statpath,'chem_corr.mat'))
+            chem_corr = Behav_RSM(group_vec,group_vec);
+            [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) chem_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], A2_corr(utl_mask) );
+        end
 
+        
+        
+        rsa_P1(ss,1,1:2+delfeat) = wt(2:3+delfeat);
+        rsa_P1t(ss,1,1:2+delfeat) = t_sc(2:3+delfeat);
 
-        rsa_pvals(ss,1)=  SFP_crosspvalcalc(wt(2:3),t_sc(2:3),sum(utl_mask(:)));
+        
+        rsa_pvals(ss,1)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
 
-        [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) int_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
-         rsa_P1(ss,2,1:2) = wt(2:3);
-        rsa_P1t(ss,2,1:2) = t_sc(2:3);
+        if settings_.chem
+            [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) chem_corr(utl_mask) int_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
+        else
+            [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) int_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
 
-          rsa_pvals(ss,2)=  SFP_crosspvalcalc(wt(2:3),t_sc(2:3),sum(utl_mask(:)));
+        end
+        
+        rsa_P1(ss,2,1:2+delfeat) = wt(2:3+delfeat);
+        rsa_P1t(ss,2,1:2+delfeat) = t_sc(2:3+delfeat);
 
-        [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) pls_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
-         rsa_P1(ss,3,1:2) = wt(2:3);
-        rsa_P1t(ss,3,1:2) = t_sc(2:3);
+          rsa_pvals(ss,2)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
 
-          rsa_pvals(ss,3)=  SFP_crosspvalcalc(wt(2:3),t_sc(2:3),sum(utl_mask(:)));
+        
+        if settings_.chem
+            [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) chem_corr(utl_mask) pls_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
+        else
+            [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) pls_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
+        end
 
-        [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) int_corr(utl_mask)  pls_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
-        rsa_P1(ss,4,1:2) = wt(2:3);
-        rsa_P1t(ss,4,1:2) = t_sc(2:3);
+        rsa_P1(ss,3,1:2+delfeat) = wt(2:3+delfeat);
+        rsa_P1t(ss,3,1:2+delfeat) = t_sc(2:3+delfeat);
 
-          rsa_pvals(ss,4)=  SFP_crosspvalcalc(wt(2:3),t_sc(2:3),sum(utl_mask(:)));
+          rsa_pvals(ss,3)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
+
+            
+        if settings_.chem
+            [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) chem_corr(utl_mask)  int_corr(utl_mask)  pls_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
+        else
+            [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask)  int_corr(utl_mask)  pls_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
+        end
+        rsa_P1(ss,4,1:2+delfeat) = wt(2:3+delfeat);
+        rsa_P1t(ss,4,1:2+delfeat) = t_sc(2:3+delfeat);
+
+          rsa_pvals(ss,4)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
     end
+
+    rsa_P1 = rsa_P1t;
 
     S_mat = squeeze(mean(rsa_P1));
     S_err = squeeze(std(rsa_P1))./sqrt(3);
@@ -133,7 +163,7 @@ if corrmat_
     xticks(1:4)
     xticklabels({'Sniff RSA','-Int','-Pls','-Int-Pls'})
     ylabel('Representational Similarity (std. \beta)')
-    legend({'Perceptual similarity','Odor trial similarity'})
+    legend({'Perceptual similarity','Odor trial similarity','chemical similarity'})
     % yline(r2t(0.05,sum(utl_mask2(:))));
     % yline(r2t(0.05,nchoosek(length( group_vec),2)));
     savefig(fullfile(savepath,'fless_map'))

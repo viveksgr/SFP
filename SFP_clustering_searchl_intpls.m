@@ -1,8 +1,8 @@
-%% General Settings
+ %% General Settings
 root = 'C:\Work';
 tic
 settings_.nodor = 160;
-settings_.wind = 4000; % Number of samples
+settings_.wind = 7500; % Number of samples
 
 % m_id = [8 13; 8 15; 11 16]; % N-settings_.wind
 % m_id = [13 61; 15 42; 16 41]; % N-settings_.wind
@@ -11,15 +11,8 @@ settings_.ncomps = [5 5 5 5];
 settings_.nsniffcomp = 31;
 settings_.featorflessnot = false;
 settings_.numClusters = 60;
-settings_.numClusters2 = 60;
-settings_.clustbehav = true;
-settings_.sniffupdate = false;
 settings_.pcamaker = false;
-settings_.pcathr = 0.99;
 settings_.mapper = true;
-settings_.orthog = false;
-
-settings_.depercept = false;
 
 dirs = {fullfile(root ,'\SFP\sfp_behav_s01_correct');
     fullfile(root ,'\SFP\sfp_behav_s02_correct');
@@ -29,7 +22,7 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
     fullfile(root,'ARC\ARC\ARC02\single');
     fullfile(root,'ARC\ARC\ARC03\single')};
 
-savepath = 'C:\Work\SFP\Clustering\Feat_main_updated_fless2';
+savepath = 'C:\Work\SFP\Clustering\IntPls_2';
 maskfile =  'ARC3_anatgw.nii';
 fmaskfile = 'ARC3_fanatgw3.nii';
 
@@ -41,11 +34,11 @@ settings_.fmasker  = true; % Turn on the functional mask
 settings_.single_n = false; % Noisepool
 settings_.single_c = true; % Cutoff from sign voxels
 settings_.mapper   = true;
-settings_.loadvec  = [3 4 9:21 23:settings_.nsniffcomp];
+settings_.loadvec  = [3 4 9:settings_.nsniffcomp ];
 
 % load(fullfile(statpath,'fir_cv.mat'))
 fprintf('\n')
-rsa_P1_ = cell(3,nanat,2); % Complete
+rsa_P1_ = cell(3,nanat,3); % Complete
 hold on
 anat_cell = {};
 % Subject - index
@@ -55,12 +48,7 @@ hold on
 sbplt = 0;
 numpcs = [13 11 11]; % 90% Variance
 idxmats = cell(3,2);
-observed_ari= zeros(3,1);
-p_value_ari = zeros(3,1);
-    ari = zeros(3);
-    thresh = zeros(3,1);
-    
-    thr_fdr = zeros(3,2);
+
 for ss = [1 2 3] % Subject
     fprintf('Subject: %02d\n',ss)
     h = waitbar(0, 'Please wait...'); % Progress bar per subject
@@ -79,12 +67,10 @@ for ss = [1 2 3] % Subject
     Feat_mat_pruned =  Feat_mat_pruned(:,[settings_.loadvec]) ;
     if settings_.pcamaker
         Feat_mat_pruned(isnan(Feat_mat_pruned))=0;
-        Feat_mat_pruned = zscore(Feat_mat_pruned,1);
+       Feat_mat_pruned = zscore(Feat_mat_pruned,1);
 
         [coeff,sc,~,~,var] = pca(Feat_mat_pruned);
         Feat_mat_pruned = sc(:,1:numpcs(ss));
-
-        Fless_mat_pruned = SFP_temporalPCA(Fless_mat_pruned,settings_.pcathr);
     end
 
     %% Gray Matter, Functional and Anatomical Masks
@@ -126,24 +112,15 @@ for ss = [1 2 3] % Subject
     tnvox = sum(anatmasks,'all');
 
     %% Defining RDMs
-    dister = 'sqeuclidean';
-    if settings_.featorflessnot; mainmat = Feat_mat_pruned; nrep = 1000;  else; mainmat = Fless_mat_pruned; nrep = 10; if ~settings_.pcamaker; dister = 'correlation'; end;  end
+    if settings_.featorflessnot; mainmat = Feat_mat_pruned; dister = 'sqeuclidean'; else; mainmat = Fless_mat_pruned(:,1:4000); dister = 'correlation';  end
     mainmat(isnan(mainmat))=0;
     if settings_.featorflessnot
         mainmat = zscore(mainmat,[],1);
     end
   
-    if settings_.sniffupdate; fname_ = 'conditions_sniffupdate_NEMO%02d.mat'; else; fname_ = 'conditions_NEMO%02d.mat'; end
+    fname_ = 'conditions_NEMO%02d.mat'; 
     onsets = load(fullfile(anatdir,sprintf(fname_,s2)),'onsets');
     onsets = onsets.onsets;
-
-    if settings_.sniffupdate
-        idx =  SFP_mapMainToSniff(onsets);
-        A1 = SFP_splitapply_mean(mainmat,idx);
-    else
-        [idx,A1] = kmeans(mainmat,settings_.numClusters,'Distance',dister,'MaxIter',1000,'Replicates',nrep);
-    end
-    A1_corr = corrcoef(A1');
 
     onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
     onsets = onsets.onsets;
@@ -162,44 +139,32 @@ for ss = [1 2 3] % Subject
     behav_ratings = behav.behav(ss).ratings;
     behav_ratings = behav_ratings(group_vec,:);
 
-    [idx2,~] = kmeans(behav_ratings,settings_.numClusters2,'MaxIter',1000,'Replicates',nrep);
-    if settings_.clustbehav; group_vec = idx2; end
-    A2 = SFP_splitapply_mean(mainmat,group_vec);
-    A2_corr = corrcoef(A2');
+    [idx_int,~] = kmeans(behav_ratings(:,1),settings_.numClusters,'MaxIter',1000,'Replicates',1000); 
+    Aint = SFP_splitapply_mean(mainmat,idx_int);
+    Aint_corr = corrcoef(Aint');
 
-   
-    idxmats{ss,1}= idx;
-    idxmats{ss,2}= idx2;
-    % 
-    % if ss==2
-    %     'beep'
-    % end
-
-    [observed_ari(ss),p_value_ari(ss),threshold]=aritester(idx,idx2);
-    thresh(ss)= threshold;
-    if settings_.orthog
-        [idx, idx2,ari(:,ss)] = sfp_decoupleClusteringIndices_prob(idx, idx2, A1_corr, A2_corr, 10000, threshold,3);
-    end
-
+    [idx_pls,~] = kmeans(behav_ratings(:,2),settings_.numClusters,'MaxIter',1000,'Replicates',1000);
+    Apls = SFP_splitapply_mean(mainmat,idx_pls);
+    Apls_corr = corrcoef(Apls');
+  
+    [idx_perc,~] = kmeans(behav_ratings(:,3:end),settings_.numClusters,'MaxIter',1000,'Replicates',1000); 
+    Aperc = SFP_splitapply_mean(mainmat,idx_perc);
+    Aperc_corr = corrcoef(Aperc');
+ 
     % Nuisance regressors
-    task_run1 = SFP_splitapply_mean(SFP_splitapply_mean(task_run',idx)',idx);
-    sess_run1 = SFP_splitapply_mean(SFP_splitapply_mean(sess_run',idx)',idx);
-    set_run1 = SFP_splitapply_mean(SFP_splitapply_mean(set_run',idx)',idx);
-    task_run2 = SFP_splitapply_mean(SFP_splitapply_mean(task_run',group_vec)',group_vec);
-    sess_run2 = SFP_splitapply_mean(SFP_splitapply_mean(sess_run',group_vec)',group_vec);
-    set_run2 = SFP_splitapply_mean(SFP_splitapply_mean(set_run',group_vec)',group_vec);
+    task_run1 = SFP_splitapply_mean(SFP_splitapply_mean(task_run',idx_int)',idx_int);
+    sess_run1 = SFP_splitapply_mean(SFP_splitapply_mean(sess_run',idx_int)',idx_int);
+    set_run1 = SFP_splitapply_mean(SFP_splitapply_mean(set_run',idx_int)',idx_int);
+    task_run2 = SFP_splitapply_mean(SFP_splitapply_mean(task_run',idx_pls)',idx_pls);
+    sess_run2 = SFP_splitapply_mean(SFP_splitapply_mean(sess_run',idx_pls)',idx_pls);
+    set_run2 = SFP_splitapply_mean(SFP_splitapply_mean(set_run',idx_pls)',idx_pls);
+    task_run3 = SFP_splitapply_mean(SFP_splitapply_mean(task_run',idx_perc)',idx_perc);
+    sess_run3 = SFP_splitapply_mean(SFP_splitapply_mean(sess_run',idx_perc)',idx_perc);
+    set_run3 = SFP_splitapply_mean(SFP_splitapply_mean(set_run',idx_perc)',idx_perc);
     
-    if  settings_.depercept 
-        b1 = SFP_splitapply_mean(behav_ratings,idx);
-        b1corr = corrcoef(b1');
-        b2 = SFP_splitapply_mean(behav_ratings,group_vec);
-        b2corr = corrcoef(b2');
-        u1corr = SFP_splitapply_mean(SFP_splitapply_mean(unity',idx)',idx);
-        u2corr = SFP_splitapply_mean(SFP_splitapply_mean(unity',group_vec)',group_vec);
-    end
     %% Representational connectivity
     kvox = 0;
-    map_area = zeros([size(anat_cell{ss}) 2]);
+    map_area = zeros([size(anat_cell{ss}) 3]);
     for ii = 1:length(anat_names)
         fprintf('area:%02d\n',ii)
         modelmd_ = load(fullfile(anatdir,'desniff',anat_names{ii},'TYPEC_FITHRF_GLMDENOISE.mat'),'modelmd','noisepool');
@@ -231,9 +196,9 @@ for ss = [1 2 3] % Subject
 
         rsa_vec_1 = zeros(nvox,1);
         rsa_vec_2 = zeros(nvox,1);
+        rsa_vec_3 = zeros(nvox,1);
 
         for cnt2 = 1:nvox
-
             indexindex2 = radius_index + lin_index(cnt2);
             indexindex2 = intersect(lin_index, indexindex2);
             indexindex2 = linindexconv(indexindex2);
@@ -243,66 +208,28 @@ for ss = [1 2 3] % Subject
 
             if (size(S_omat_vals_r,1)>1)
 
-
-                M1 = SFP_splitapply_mean(S_omat_vals_r',idx);
+                M1 = SFP_splitapply_mean(S_omat_vals_r',idx_int);
                 M1 = zscore(M1,[],1);
-                M2 = SFP_splitapply_mean(S_omat_vals_r',group_vec);
+                M2 = SFP_splitapply_mean(S_omat_vals_r',idx_pls);
                 M2 = zscore(M2,[],1);
+                M3 = SFP_splitapply_mean(S_omat_vals_r',idx_perc);
+                M3 = zscore(M3,[],1);
 
                 M1_anat = corrcoef(M1');
                 M2_anat = corrcoef(M2');
+                M3_anat = corrcoef(M3');
 
+                utl_mask = logical(triu(ones(length(unique(idx_int))),1)); % All possible odors
+                [~,t_sc1] = ARC_multicomputeWeights_tsc([Aint_corr(utl_mask) task_run1(utl_mask) sess_run1(utl_mask) ], M1_anat(utl_mask));
+                rsa_vec_1(cnt2) = t_sc1(2);
 
+                utl_mask = logical(triu(ones(length(unique(idx_pls))),1)); % All possible odors
+                [~,t_sc2] = ARC_multicomputeWeights_tsc([Apls_corr(utl_mask) task_run2(utl_mask) sess_run2(utl_mask) ], M2_anat(utl_mask));
+                rsa_vec_2(cnt2) = t_sc2(2);
 
-                if ~settings_.depercept
-                    utl_mask = logical(triu(ones(length(unique(idx))),1)); % All possible odors
-                    [wt1,t_sc1] = ARC_multicomputeWeights_tsc([A1_corr(utl_mask) task_run1(utl_mask) sess_run1(utl_mask) set_run1(utl_mask)], M1_anat(utl_mask));
-                    % [~,t_sc] = ARC_multicomputeWeights_tsc([A1_corr(utl_mask)], M1_anat(utl_mask));
-
-                    rsa_vec_1(cnt2) = wt1(2);
-
-                    utl_mask = logical(triu(ones(length(unique(group_vec))),1)); % All possible odors
-                    [wt2,t_sc2] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask) task_run2(utl_mask) sess_run2(utl_mask)], M2_anat(utl_mask));
-                    % [~,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask)], M2_anat(utl_mask));
-
-                    rsa_vec_2(cnt2) = wt2(2);
-
-                    % if and(ii==3,and((t_sc2(2)>t_sc1(2)),t_sc2(2)>3))
-                    %     'Arre bitwa...'
-                    % end
-
-                else
-                    utl_mask = logical(triu(ones(length(unique(idx))),1)); % All possible odors
-                    
-                    [wt1,t_sc1] = ARC_multicomputeWeights_tsc([A1_corr(utl_mask) b1corr(utl_mask) u1corr(utl_mask)  task_run1(utl_mask) sess_run1(utl_mask) set_run1(utl_mask)], M1_anat(utl_mask));
-                    % [~,t_sc] = ARC_multicomputeWeights_tsc([A1_corr(utl_mask)], M1_anat(utl_mask));
-
-                    rsa_vec_1(cnt2) = wt1(2);
-
-                    utl_mask = logical(triu(ones(length(unique(group_vec))),1)); % All possible odors
-                    % set_run2 and sess_run2 are collinear
-                    [wt2,t_sc2] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask) b2corr(utl_mask) task_run2(utl_mask) sess_run2(utl_mask)], M2_anat(utl_mask));
-                    % [~,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask)], M2_anat(utl_mask));
-
-                    rsa_vec_2(cnt2) = wt2(2);
-                end
-                
-                % % t_diff
-                % % Calculate the difference between the weights
-                % weight_diff = weights(2) - weights(3);
-                % 
-                % % Calculate the standard error of the difference
-                % se_diff = sqrt(standard_errors(2)^2 + standard_errors^2);
-                % 
-                % % Calculate the t-score for the difference
-                % t_score_diff = weight_diff / se_diff;
-                % 
-                % % Calculate the degrees of freedom
-                % df = length(y) - size(X, 2);
-                % 
-                % % Calculate the p-value for the two-tailed t-test
-                % p_value_diff = 2 * (1 - tcdf(abs(t_score_diff), df));
-
+                utl_mask = logical(triu(ones(length(unique(idx_perc))),1)); % All possible odors
+                [~,t_sc3] = ARC_multicomputeWeights_tsc([Aperc_corr(utl_mask) task_run3(utl_mask) sess_run3(utl_mask) ], M3_anat(utl_mask));
+                rsa_vec_3(cnt2) = t_sc3(2);
             end
             kvox = kvox+1;
             waitbar(kvox/(tnvox), h, sprintf('Processing S:%02d, %.2f %%', ss, (kvox/(tnvox)*100))) % Update progress
@@ -310,46 +237,24 @@ for ss = [1 2 3] % Subject
 
         rsa_P1_{ss,ii,1} = rsa_vec_1;
         rsa_P1_{ss,ii,2} = rsa_vec_2;
+        rsa_P1_{ss,ii,3} = rsa_vec_3;
 
         map_area(:,:,:,ii,1)  = unmasker(rsa_vec_1,logical(anatmasks(:,:,:,ii)));
         map_area(:,:,:,ii,2) = unmasker(rsa_vec_2,logical(anatmasks(:,:,:,ii)));
-        % 
-        % if settings_.mapper
-        %     rsa_vec_1 = unmasker(rsa_vec_1,logical(anatmasks(:,:,:,ii)));
-        %     rsa_vec_2 = unmasker(rsa_vec_2,logical(anatmasks(:,:,:,ii)));
-        %     write_reshaped_nifty(rsa_vec_1, savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_peak_%s',ss,anat_names{ii}));
-        %     write_reshaped_nifty(rsa_vec_2, savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_RSA_%s',ss,anat_names{ii}));
-        %     write_reshaped_nifty(rsa_vec_1-rsa_vec_2, savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_peak-RSA_%s',ss,anat_names{ii}));
-        %     write_reshaped_nifty(rsa_vec_2-rsa_vec_1, savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_RSA-peak_%s',ss,anat_names{ii}));
-        % end
-
+        map_area(:,:,:,ii,3) = unmasker(rsa_vec_3,logical(anatmasks(:,:,:,ii)));
     end
 
     map_area(map_area==0)=nan;
     map_mat = squeeze(mean(map_area,4,"omitnan"));
 
-    m1 = squeeze(map_mat(:,:,:,1));
-    m2 = squeeze(map_mat(:,:,:,2));
-
-    df1 = sum(~isnan(m1(:)));
-    func = @(x) 2 * (1 - tcdf(abs(x),df1));   
-    p1_mat = arrayfun(func,m1(~isnan(m1)));
-    
-    df2 = sum(~isnan(m2(:))); 
-    func = @(x) 2 * (1 - tcdf(abs(x),df2)); 
-    p2_mat = arrayfun(func,m2(~isnan(m2)));
-
-    thr_fdr(ss,1) = tinv(1-fdr_benjhoc(p1_mat),df1);
-    thr_fdr(ss,2) = tinv(1-fdr_benjhoc(p2_mat),df2);
-
-
-    write_reshaped_nifty(squeeze(map_mat(:,:,:,1)), savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_sniff',ss));
-    write_reshaped_nifty(squeeze(map_mat(:,:,:,2)), savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_perc',ss));
+    write_reshaped_nifty(squeeze(map_mat(:,:,:,1)), savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_int',ss));
+    write_reshaped_nifty(squeeze(map_mat(:,:,:,2)), savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_pls',ss));
+     write_reshaped_nifty(squeeze(map_mat(:,:,:,3)), savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_perc',ss));
     close(h)
 end
 
-% rsa_P1 = cellfun(@(x) (sum(x> tinv(0.95,sum(utl_mask,'all')))./length(x))*100,rsa_P1_);
-rsa_P1 =  cellfun(@(x) mean(x),rsa_P1_);
+rsa_P1 = cellfun(@(x) (sum(x> tinv(0.99,sum(utl_mask,'all')))./length(x))*100,rsa_P1_);
+% rsa_P1 =  cellfun(@(x) mean(x),rsa_P1_);
 % rsa_P1(3,5,:) = nan;
 ARC_barplot(rsa_P1)
 gcf
@@ -369,7 +274,7 @@ gcf
 xticks(1:nanat)
 xticklabels(anat_names);
 % r2t(0.05,length(A2_corr_vec))
-legend('Sniff','percept','Unclassified')
+legend('S_I>S_O','S_O>S_I','Unclassified')
 ylabel('Representational Similarity (%)')
 savefig(fullfile(savepath,'feat_map_comp'))
 print(fullfile(savepath,'feat_map_comp'),'-dpng')
@@ -390,7 +295,7 @@ for s = 1:3
         '\\fsmresfiles.fsm.northwestern.edu\fsmresfiles\Neurology\Kahnt_Lab\Vivek\KData\NEMO\NEMO_02\imaging\nii\anat\sNEMO02.nii'
         '\\fsmresfiles.fsm.northwestern.edu\fsmresfiles\Neurology\Kahnt_Lab\Vivek\KData\NEMO\NEMO_04\imaging\nii\anat\sNEMO04.nii'};
     wdir = pwd;
-%     f2 = dir(fullfile(wdir,sprintf('S%01d',s),'spmT_0006.nii'));
+%   f2 = dir(fullfile(wdir,sprintf('S%01d',s),'spmT_0006.nii'));
     f2 = dir(fullfile(wdir,sprintf('SFP%02d*.nii',s)));
 
     files = {};
@@ -427,19 +332,15 @@ if img_avg
 
         tokens = regexp(iminput{1}, 'wSFP(\d+)_(.*).nii', 'tokens');
         strings = tokens{1}{2};  % Extract string part
-        fname = strjoin({'cgSFP',strings},'_');
+        fname = strjoin({'gSFP',strings},'_');
         matlabbatch = [];
         
         matlabbatch{1}.spm.util.imcalc.input = iminput;
         matlabbatch{1}.spm.util.imcalc.output = fname;
         matlabbatch{1}.spm.util.imcalc.outdir = {outpurdir};
-        if ff==1
-        matlabbatch{1}.spm.util.imcalc.expression = '(double(i1>1.79)+double(i2>1.65)+double(i3>2.37))';
-        else
-        matlabbatch{1}.spm.util.imcalc.expression = '(double(i1>2.34)+double(i2>1.70)+double(i3>2.09))';
-        end
-        % matlabbatch{1}.spm.util.imcalc.expression = '(-i1-i2-i3)/3';
-        % matlabbatch{1}.spm.util.imcalc.expression = '(i1+i2+i3)/3';
+%       matlabbatch{1}.spm.util.imcalc.expression = '(double(i1>0.00053)+double(i2>0.00053)+double(i3>0.00053))/3';
+%       matlabbatch{1}.spm.util.imcalc.expression = '(-i1-i2-i3)/3';
+        matlabbatch{1}.spm.util.imcalc.expression = '(i1+i2+i3)/3';
         matlabbatch{1}.spm.util.imcalc.var = struct('name', {}, 'value', {});
         matlabbatch{1}.spm.util.imcalc.options.dmtx = 0;
         matlabbatch{1}.spm.util.imcalc.options.mask = 0;

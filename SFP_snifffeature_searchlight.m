@@ -1,4 +1,4 @@
-%% General Settings
+ %% General Settings
 root = 'C:\Work';
 tic
 settings_.nodor = 160;
@@ -8,9 +8,8 @@ settings_.wind = 7500; % Number of samples
 % m_id = [13 61; 15 42; 16 41]; % N-settings_.wind
 % m_id = [3 4; 3 4; 3 4]; % INhale Exhale
 
-settings_.nsniffcomp = 31; % 14 for minimal space, 31 for full space
+settings_.nsniffcomp = 14; % 14 for minimal space, 31 for full space
 settings_.featorflessnot = true;
-settings_.multiregress = true;
 settings_.pcamaker = false;
 
 dirs = {fullfile(root ,'\SFP\sfp_behav_s01_correct');
@@ -21,7 +20,7 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
     fullfile(root,'ARC\ARC\ARC02\single');
     fullfile(root,'ARC\ARC\ARC03\single')};
 
-savepath = 'C:\Work\SFP\Clustering\Feat_main_updated_tsc';
+savepath = 'C:\Work\SFP\Clustering\Feat_main_updated_fless';
 maskfile =  'ARC3_anatgw.nii';
 fmaskfile = 'ARC3_fanatgw3.nii';
 
@@ -159,19 +158,24 @@ for ss = [1 2 3] % Subject
 
         utl_mask = logical(triu(ones(length(group_vec)),1)); % All possible odors
 
-        raw_sniff_cont = spm_read_vols(spm_vol( sprintf('SFP%02d_peak_%s.nii',ss,anat_names{ii})));
+        raw_sniff_cont = spm_read_vols(spm_vol( sprintf('SFP%02d_sniff.nii',ss)));
         raw_sniff_cont = raw_sniff_cont(logical(anatmasks(:,:,:,ii)));
         assert(length(raw_sniff_cont)==size(S_omat_vals_r,1));
-        thr = tinv(0.999,nchoosek(length(group_vec),2));
+        thr = tinv(0.95,nchoosek(length(group_vec),2));
+        thr = 0;
 
-        mod_sniff_cont = spm_read_vols(spm_vol( sprintf('SFP%02d_RSA_%s.nii',ss,anat_names{ii})));
+        mod_sniff_cont = spm_read_vols(spm_vol( sprintf('SFP%02d_perc.nii',ss)));
         mod_sniff_cont = mod_sniff_cont(logical(anatmasks(:,:,:,ii)));
         assert(length(mod_sniff_cont)==size(S_omat_vals_r,1));
+        % if and(ss==2,ii==2)          
+        %     error('beepboop')
+        % end
 
         raw_vox = and(raw_sniff_cont>thr, mod_sniff_cont<thr);
         mod_vox = and(raw_sniff_cont>thr, mod_sniff_cont>thr);
         n_vox(ss,ii,:) = [sum(mod_vox) sum(raw_vox)];
-        if min(sum(raw_vox),sum(mod_vox))>10
+        if min(sum(raw_vox),sum(mod_vox))>4
+            min(sum(raw_vox),sum(mod_vox))
             A2_corr = SFP_extractUpperTriangles(mainmat,utl_mask);
             
             M2_anat = corrcoef(S_omat_vals_r( raw_vox,:));
@@ -211,8 +215,8 @@ end
 S_mat = squeeze(mean(rsa_P1));
 rsa_pvals_mean = tcdf(S_mat,sum(utl_mask,'all'),'upper');
 
-savefig(fullfile(savepath,'feat_map_comp'))
-print(fullfile(savepath,'feat_map_comp'),'-dpng')
+savefig(fullfile(savepath,'feat_weights'))
+print(fullfile(savepath,'feat_weights'),'-dpng')
 clearvars fless_mat mainmat Fless_mat_pruned Fless_mat unity task_run set_run sess_run anat_cell
 
 % clear Fmat_1_m behav_mat unity M_anat M_reg n_reg M_unstack fless_mat fless_mat_unn modelmd_ modelmd S_omat_vals utl_mask utl_mask2
@@ -241,8 +245,8 @@ end
 S_mat = squeeze(mean(rsa_P1));
 rsa_pvals_mean = tcdf(S_mat,sum(utl_mask,'all'),'upper');
 
-savefig(fullfile(savepath,'feat_map_comp'))
-print(fullfile(savepath,'feat_map_comp'),'-dpng')
+savefig(fullfile(savepath,'feat_weights2'))
+print(fullfile(savepath,'feat_weights2'),'-dpng')
 
 
 %% Principal components
@@ -276,4 +280,5 @@ xticks(1:5)
 xticklabels(anat_names)
 legend({'Unmod','Mod'})
 ylabel('Avg. beta weights')
+print(fullfile(savepath,'avg_feat_weights'),'-dpng')
 % xtickangle(90)

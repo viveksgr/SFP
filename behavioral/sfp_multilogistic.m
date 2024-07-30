@@ -1,13 +1,15 @@
 %% Multilogistic regression
 % Sniffing modulation
 grp_ = true;
-num_descrip = 14;
+num_descrip = 31;
 rootf = 'C:\Work\SFP\Final_plots\Behavioral';
-settings_.pcamaker = true;
+settings_.pcamaker = false;
 numpcs = [5 5 5]; % 90% Variance
+
 figure()
 hold on
 load(fullfile('C:\Work\SFP\common_datafiles','snifflabels.mat'))
+proper_list(16)=[];
 if grp_
     nodor = 160;
     wind = 3500; % Number of samples
@@ -25,7 +27,7 @@ if grp_
         load(fullfile(dirs{ss},'sfp_feats_main.mat'))
         Fless_mat = vertcat(fless_mat{:});
         feat_mat = vertcat(feat_mat{:});
-        feat_mat_pruned = feat_mat(:,[3 4 9:num_descrip]);
+        feat_mat_pruned = feat_mat(:,[3 4 9:21 23:num_descrip]);
         feat_mat_pruned(isnan(feat_mat_pruned))=0;
         feat_mat_pruned = zscore(feat_mat_pruned);
 
@@ -46,7 +48,7 @@ if grp_
         unity = unity(argsort,argsort);
         utl_mask = logical(triu(ones(length(unity)),1)); % All possible odors
 
-         nfeatures = size(feat_mat_pruned,2);
+        nfeatures = size(feat_mat_pruned,2);
         if settings_.pcamaker
             npc = numpcs(ss);
            
@@ -75,13 +77,18 @@ if grp_
             y = discretize(behav_ratings_, edges_);
 
 
-            [num_eff(ss,pp) , num_pval(ss,pp) ,wt] = SFP_logisticRegressionCV(y, feat_mat_pruned);    
-            coeffmat = coeff(:,1:npc);
-            wt_sc = coeffmat.*wt';
-            wt_sc_mat(:,pp) = mean(wt_sc,2);
+            [num_eff(ss,pp) , num_pval(ss,pp) ,wt] = SFP_logisticRegressionCV(y, feat_mat_pruned);               
+            if settings_.pcamaker
+                coeffmat = coeff(:,1:npc);
+                wt_sc = coeffmat.*wt';
+                wt_sc_mat(:,pp) = abs(mean(wt_sc,2));
+            else
+                wt_sc_mat(:,pp) = wt;
+            end
         end
 
         wt_mat(ss,:) = mean(wt_sc_mat,2);
+        wt_mat_cell{ss} = wt_sc_mat;
 
         subplot(1,3,ss)
         hold on
@@ -97,12 +104,13 @@ if grp_
 
     end
 end 
+
 nS = 3;
 behav_lab1 = behav.behav(1).percepts;
 behav_lab2 = behav.behav(2).percepts;
 
 idx2 = [1:10 19 11:14 19 15 19 16:18]; % Use this is argsort in sub(2 and 3) to match the labels
-idx1 = [1:18 19 19 19];
+idx1 = [1:18 19 19 19]; 
 behav_labs = {behav_lab1{:} behav_lab2{end-2:end}};
 
 num_eff(:,end+1)=nan;
@@ -133,16 +141,15 @@ xticklabels(behav_labs)
 xtickangle(90)
 yline(1/3)
 
-
 figure()
-bar(1:8,nanmean(wt_mat))
+bar(nfeatures,nanmean(wt_mat))
 hold on
-errorbar(1:8,nanmean(wt_mat),1.96*nanstd(wt_mat)/sqrt(3),'.')
+errorbar(1:nfeatures,nanmean(wt_mat),1.96*nanstd(wt_mat)/sqrt(3),'.')
 c = {'r.','g.','b.'};
 for ss = 1:3
-    plot(1:8,wt_mat(ss,:),c{ss})
+    plot(1:nfeatures,wt_mat(ss,:),c{ss})
 end
-xticks(1:8)
+xticks(1:nfeatures)
 xticklabels(strrep(proper_list, '_', ' '))
 xtickangle(90)
 yline(1/3)
