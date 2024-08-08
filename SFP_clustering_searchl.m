@@ -29,7 +29,7 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
     fullfile(root,'ARC\ARC\ARC02\single');
     fullfile(root,'ARC\ARC\ARC03\single')};
 
-savepath = 'C:\Work\SFP\Clustering\Feat_main_updated_fless2';
+savepath = 'C:\Work\SFP\Clustering\Fless_main_updated_rand2';
 maskfile =  'ARC3_anatgw.nii';
 fmaskfile = 'ARC3_fanatgw3.nii';
 
@@ -45,7 +45,9 @@ settings_.loadvec  = [3 4 9:21 23:settings_.nsniffcomp];
 
 % load(fullfile(statpath,'fir_cv.mat'))
 fprintf('\n')
-rsa_P1_ = cell(3,nanat,2); % Complete
+rsa_P1_ = cell(3,nanat,3); % Complete
+rsa_P1t_ = cell(3,nanat,3); % Complete
+
 hold on
 anat_cell = {};
 % Subject - index
@@ -54,7 +56,7 @@ behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
 hold on
 sbplt = 0;
 numpcs = [13 11 11]; % 90% Variance
-idxmats = cell(3,2);
+idxmats = cell(3,3);
 observed_ari= zeros(3,1);
 p_value_ari = zeros(3,1);
     ari = zeros(3);
@@ -167,13 +169,13 @@ for ss = [1 2 3] % Subject
     A2 = SFP_splitapply_mean(mainmat,group_vec);
     A2_corr = corrcoef(A2');
 
-   
+    idx3 = datasample(1:settings_.numClusters,length(idx));
     idxmats{ss,1}= idx;
     idxmats{ss,2}= idx2;
-    % 
-    % if ss==2
-    %     'beep'
-    % end
+    idxmats{ss,3}= idx3;
+
+    A3 = SFP_splitapply_mean(mainmat,idx3);
+    A3_corr = corrcoef(A3');
 
     [observed_ari(ss),p_value_ari(ss),threshold]=aritester(idx,idx2);
     thresh(ss)= threshold;
@@ -188,6 +190,9 @@ for ss = [1 2 3] % Subject
     task_run2 = SFP_splitapply_mean(SFP_splitapply_mean(task_run',group_vec)',group_vec);
     sess_run2 = SFP_splitapply_mean(SFP_splitapply_mean(sess_run',group_vec)',group_vec);
     set_run2 = SFP_splitapply_mean(SFP_splitapply_mean(set_run',group_vec)',group_vec);
+    task_run3 = SFP_splitapply_mean(SFP_splitapply_mean(task_run',idx3)',idx3);
+    sess_run3 = SFP_splitapply_mean(SFP_splitapply_mean(sess_run',idx3)',idx3);
+    set_run3 = SFP_splitapply_mean(SFP_splitapply_mean(set_run',idx3)',idx3);
     
     if  settings_.depercept 
         b1 = SFP_splitapply_mean(behav_ratings,idx);
@@ -199,7 +204,7 @@ for ss = [1 2 3] % Subject
     end
     %% Representational connectivity
     kvox = 0;
-    map_area = zeros([size(anat_cell{ss}) 2]);
+    map_area = zeros([size(anat_cell{ss}) 3]);
     for ii = 1:length(anat_names)
         fprintf('area:%02d\n',ii)
         modelmd_ = load(fullfile(anatdir,'desniff',anat_names{ii},'TYPEC_FITHRF_GLMDENOISE.mat'),'modelmd','noisepool');
@@ -229,8 +234,13 @@ for ss = [1 2 3] % Subject
         linindexconv = zeros(sz);
         linindexconv(lin_index) = 1:length(lin_index);
 
-        rsa_vec_1 = zeros(nvox,1);
-        rsa_vec_2 = zeros(nvox,1);
+        rsa_vec_1w = zeros(nvox,1);
+        rsa_vec_2w = zeros(nvox,1);
+        rsa_vec_3w = zeros(nvox,1);
+
+        rsa_vec_1t = zeros(nvox,1);
+        rsa_vec_2t = zeros(nvox,1);
+        rsa_vec_3t = zeros(nvox,1);
 
         for cnt2 = 1:nvox
 
@@ -248,28 +258,30 @@ for ss = [1 2 3] % Subject
                 M1 = zscore(M1,[],1);
                 M2 = SFP_splitapply_mean(S_omat_vals_r',group_vec);
                 M2 = zscore(M2,[],1);
+                M3 = SFP_splitapply_mean(S_omat_vals_r',idx3);
+                M3 = zscore(M3,[],1);                               
 
                 M1_anat = corrcoef(M1');
                 M2_anat = corrcoef(M2');
-
-
+                M3_anat = corrcoef(M3');
 
                 if ~settings_.depercept
                     utl_mask = logical(triu(ones(length(unique(idx))),1)); % All possible odors
                     [wt1,t_sc1] = ARC_multicomputeWeights_tsc([A1_corr(utl_mask) task_run1(utl_mask) sess_run1(utl_mask) set_run1(utl_mask)], M1_anat(utl_mask));
-                    % [~,t_sc] = ARC_multicomputeWeights_tsc([A1_corr(utl_mask)], M1_anat(utl_mask));
-
-                    rsa_vec_1(cnt2) = wt1(2);
+                    rsa_vec_1w(cnt2) = wt1(2);
+                    rsa_vec_1t(cnt2) = t_sc1(2);
 
                     utl_mask = logical(triu(ones(length(unique(group_vec))),1)); % All possible odors
                     [wt2,t_sc2] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask) task_run2(utl_mask) sess_run2(utl_mask)], M2_anat(utl_mask));
-                    % [~,t_sc] = ARC_multicomputeWeights_tsc([A2_corr(utl_mask)], M2_anat(utl_mask));
+                    rsa_vec_2w(cnt2) = wt2(2);
+                    rsa_vec_2t(cnt2) = t_sc2(2);
 
-                    rsa_vec_2(cnt2) = wt2(2);
+                    utl_mask = logical(triu(ones(length(unique(idx3))),1)); % All possible odors
+                    [wt3,t_sc3] = ARC_multicomputeWeights_tsc([A3_corr(utl_mask) task_run3(utl_mask) sess_run3(utl_mask) set_run3(utl_mask)], M3_anat(utl_mask));
+                    rsa_vec_3w(cnt2) = wt3(2);
+                    rsa_vec_3t(cnt2) = t_sc3(2);
 
-                    % if and(ii==3,and((t_sc2(2)>t_sc1(2)),t_sc2(2)>3))
-                    %     'Arre bitwa...'
-                    % end
+                 
 
                 else
                     utl_mask = logical(triu(ones(length(unique(idx))),1)); % All possible odors
@@ -308,11 +320,21 @@ for ss = [1 2 3] % Subject
             waitbar(kvox/(tnvox), h, sprintf('Processing S:%02d, %.2f %%', ss, (kvox/(tnvox)*100))) % Update progress
         end
 
-        rsa_P1_{ss,ii,1} = rsa_vec_1;
-        rsa_P1_{ss,ii,2} = rsa_vec_2;
 
-        map_area(:,:,:,ii,1)  = unmasker(rsa_vec_1,logical(anatmasks(:,:,:,ii)));
-        map_area(:,:,:,ii,2) = unmasker(rsa_vec_2,logical(anatmasks(:,:,:,ii)));
+        if and(ii==3,ss==2)
+            'Arre bitwa...'
+        end
+
+        rsa_P1_{ss,ii,1} = rsa_vec_1w;
+        rsa_P1_{ss,ii,2} = rsa_vec_2w; 
+        rsa_P1_{ss,ii,3} = rsa_vec_3w;
+        rsa_P1t_{ss,ii,1} = rsa_vec_2t;
+        rsa_P1t_{ss,ii,2} = rsa_vec_1t;
+        rsa_P1t_{ss,ii,3} = rsa_vec_2t;
+
+        map_area(:,:,:,ii,1) = unmasker(rsa_vec_1t,logical(anatmasks(:,:,:,ii)));
+        map_area(:,:,:,ii,2) = unmasker(rsa_vec_2t,logical(anatmasks(:,:,:,ii)));
+        map_area(:,:,:,ii,3) = unmasker(rsa_vec_3t,logical(anatmasks(:,:,:,ii)));
         % 
         % if settings_.mapper
         %     rsa_vec_1 = unmasker(rsa_vec_1,logical(anatmasks(:,:,:,ii)));
@@ -330,6 +352,7 @@ for ss = [1 2 3] % Subject
 
     m1 = squeeze(map_mat(:,:,:,1));
     m2 = squeeze(map_mat(:,:,:,2));
+    m3 = squeeze(map_mat(:,:,:,3));
 
     df1 = sum(~isnan(m1(:)));
     func = @(x) 2 * (1 - tcdf(abs(x),df1));   
@@ -339,17 +362,31 @@ for ss = [1 2 3] % Subject
     func = @(x) 2 * (1 - tcdf(abs(x),df2)); 
     p2_mat = arrayfun(func,m2(~isnan(m2)));
 
+    df3 = sum(~isnan(m3(:))); 
+    func = @(x) 2 * (1 - tcdf(abs(x),df3)); 
+    p3_mat = arrayfun(func,m3(~isnan(m3)));
+
+
     thr_fdr(ss,1) = tinv(1-fdr_benjhoc(p1_mat),df1);
     thr_fdr(ss,2) = tinv(1-fdr_benjhoc(p2_mat),df2);
+    thr_fdr(ss,3) = tinv(1-fdr_benjhoc(p3_mat),df3);
 
 
     write_reshaped_nifty(squeeze(map_mat(:,:,:,1)), savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_sniff',ss));
     write_reshaped_nifty(squeeze(map_mat(:,:,:,2)), savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_perc',ss));
+    write_reshaped_nifty(squeeze(map_mat(:,:,:,3)), savepath, false, fullfile(anatpath,maskfile), sprintf('SFP%02d_rand',ss));
     close(h)
 end
 
 % rsa_P1 = cellfun(@(x) (sum(x> tinv(0.95,sum(utl_mask,'all')))./length(x))*100,rsa_P1_);
 rsa_P1 =  cellfun(@(x) mean(x),rsa_P1_);
+rsa_P1t = cellfun(@(b, t) SFP_calculateAvgTscore(b, t), rsa_P1_, rsa_P1t_, 'UniformOutput', true);
+df = sum( utl_mask,'all');
+p_values_matrix = ARC_RSA_pvals(rsa_P1t, rsa_P1, df)
+
+
+
+
 % rsa_P1(3,5,:) = nan;
 ARC_barplot(rsa_P1)
 gcf

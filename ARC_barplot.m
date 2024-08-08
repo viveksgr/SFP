@@ -14,6 +14,7 @@ end
 ngroups = size(S_mat, 1);
 nbars = size(S_mat, 2);
 bar(S_mat);
+colororder("earth")
 % Calculating the width for each bar group
 groupwidth = min(0.8, nbars/(nbars + 1.5));
 x_m = [];
