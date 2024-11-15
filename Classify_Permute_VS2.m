@@ -29,7 +29,7 @@ for trl_idx = 1 : nfolds
     testY = grp(testind_log);
 
     % Classification
-    mdl = svmtrain( trainY,  trainX, ' -t 0 -c 1 -q');
+    mdl = svmtrain( trainY,  trainX, ' -t 2 -c 1 -q');
 
     % Regression:
     % mdl = svmtrain( trainY,  trainX, '-s 3 -t 2 -c 1 -q');

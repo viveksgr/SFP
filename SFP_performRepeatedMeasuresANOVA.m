@@ -31,6 +31,16 @@ function pValue = SFP_performRepeatedMeasuresANOVA(cellArray)
     results = anova(lme);
     pValue = results.pValue(2);  % p-value for the condition effect
 
+    FStatistic = results.FStat(2);
+
+    % Access degrees of freedom associated with the F-statistic
+    DF1 = results.DF1(2); % Degrees of freedom for the numerator (between groups)
+    DF2 = results.DF2(2); % Degrees of freedom for the denominator (within groups, error)
+
+    % Display or format the result for reporting
+    fprintf('The F-statistic for the condition effect is F(%d, %d) = %.3f, p = %.3f.\n', ...
+        DF1, DF2, FStatistic, pValue);
+
     posthocResults = performPosthocComparisonsFDR(lme);
     % Display results
     fprintf('ANOVA p-value for Condition effect: %f\n', pValue);
@@ -97,7 +107,7 @@ end
 
 function posthocResults = performPosthocComparisonsFDR(lme)
     % Extract fixed effects estimates, covariance matrix, standard errors, and degrees of freedom
-    [beta,~,stats] = fixedEffects(lme);
+    [beta,n,stats] = fixedEffects(lme);
     SE = stats.SE;
     df = stats.DF(1);  % Assuming consistent DF for simplicity
 
@@ -113,7 +123,8 @@ function posthocResults = performPosthocComparisonsFDR(lme)
         pValues(i) = 2 * tcdf(-abs(tStat), df);
     end
 
-    % Adjust p-values for FDR
+    % % Adjust p-values for FDR
+     % adjustedPValues = pValues;
     adjustedPValues = mafdr(pValues, 'BHFDR', true);
 
     % Store results

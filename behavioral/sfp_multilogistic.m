@@ -77,7 +77,8 @@ if grp_
             y = discretize(behav_ratings_, edges_);
 
 
-            [num_eff(ss,pp) , num_pval(ss,pp) ,wt] = SFP_logisticRegressionCV(y, feat_mat_pruned);               
+            [num_eff(ss,pp) , num_pval(ss,pp) ,wt] = SFP_logisticRegressionCV_ordinal(y, feat_mat_pruned);  
+            
             if settings_.pcamaker
                 coeffmat = coeff(:,1:npc);
                 wt_sc = coeffmat.*wt';
@@ -124,32 +125,36 @@ for ii = 1:3
         rels(ii,:)=num_eff(ii,idx2);
     end
 end
-rels_mean = mean(rels,1);
-[rels_sort,argsort] = sort(rels_mean,'descend');
+rels_mean = nanmean(rels,1);
+[~,argsort] = sort(rels_mean,'descend');
 behav_labs_sort = behav_labs(argsort);
+rels_sort = rels(:,argsort);
 
 figure()
-bar(1:21,nanmean(rels))
+bar(1:21,nanmean(rels_sort))
 hold on
-errorbar(1:21,nanmean(rels),1.96*nanstd(rels)/sqrt(3),'.')
+errorbar(1:21,nanmean(rels_sort),1.96*nanstd(rels_sort)/sqrt(3),'.')
 c = {'r.','g.','b.'};
 for ss = 1:3
-    plot(1:21,rels(ss,:),c{ss})
+    plot(1:21,rels_sort(ss,:),c{ss})
 end
 xticks(1:21)
-xticklabels(behav_labs)
+xticklabels(behav_labs_sort)
 xtickangle(90)
 yline(1/3)
 
-figure()
-bar(nfeatures,nanmean(wt_mat))
-hold on
-errorbar(1:nfeatures,nanmean(wt_mat),1.96*nanstd(wt_mat)/sqrt(3),'.')
-c = {'r.','g.','b.'};
-for ss = 1:3
-    plot(1:nfeatures,wt_mat(ss,:),c{ss})
-end
-xticks(1:nfeatures)
-xticklabels(strrep(proper_list, '_', ' '))
-xtickangle(90)
-yline(1/3)
+% figure()
+% bar(1:nfeatures,nanmean(wt_mat))
+% hold on
+% errorbar(1:nfeatures,nanmean(wt_mat),1.96*nanstd(wt_mat)/sqrt(3),'.')
+% c = {'r.','g.','b.'};
+% for ss = 1:3
+%     plot(1:nfeatures,wt_mat(ss,:),c{ss})
+% end
+% xticks(1:nfeatures)
+% xticklabels(strrep(proper_list, '_', ' '))
+% xtickangle(90)
+
+% FDR correction
+num_pval_cell = mat2cell(num_pval,[1 1 1]);
+[a,num_p_fdr] = cellfun(@fdr_benjhoc,num_pval_cell,'UniformOutput',false);

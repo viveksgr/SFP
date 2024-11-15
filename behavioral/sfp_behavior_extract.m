@@ -211,7 +211,7 @@ end
 
 %% Illustrations of sniffing modulation
 grp_ = true;
-rootf = 'C:\Work\SFP\Final_plots\Behavioral';
+rootf = 'C:\Work\SFP\Final_plots\Behavioral\all';
 if grp_
     nodor = 160;
     wind = 3500; % Number of samples
@@ -223,7 +223,6 @@ if grp_
     behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
     behav_ids = [1 1 1; 2 2 2; 3 3 3; 17 15 15; 8 8 8; 9 9 9];
     behav_names = behav.behav(2).percepts(behav_ids(:,2));
-
 
     figure('Position',[0 0 1280 720])
     hold on
@@ -306,3 +305,73 @@ if grp_
     print(fullfile(rootf,'snifftraces_mat'),'-dpng')
 end
 
+%% Sniff mats
+grp_ = true;
+rootf = 'C:\Work\SFP\Final_plots\Behavioral\Extdata';
+load(fullfile('C:\Work\SFP\common_datafiles','snifflabels.mat'))
+proper_list(16)=[];
+mkdir(rootf)
+if grp_
+    nodor = 160;
+    wind = 3500; % Number of samples
+    dirs = {'C:\Work\SFP\sfp_behav_s01_correct';
+        'C:\Work\SFP\sfp_behav_s02_correct';
+        'C:\Work\SFP\sfp_behav_s04_correct'};
+    color = [0.8500 0.3250 0.0980; 0.9290 0.6940 0.1250; 0.3010 0.7450 0.9330; 0 0.4470 0.7410];
+
+    behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
+    behav_ids = [1 1 1; 2 2 2; 3 3 3; 17 15 15; 8 8 8; 9 9 9];
+    behav_names = behav.behav(2).percepts(behav_ids(:,2));
+
+    figure('Position',[0 0 1280 320])
+    hold on
+    plot_id = 0;
+    for ss = 1:length(dirs)
+        load(fullfile(dirs{ss},'sfp_feats_main.mat'))
+        Fless_mat = vertcat(fless_mat{:});
+        feat_mat = vertcat(feat_mat{:});
+         feat_mat_pruned = feat_mat(:,[3 4 9:21 23:31]);
+        feat_mat_pruned(isnan(feat_mat_pruned))=0;
+        feat_mat_pruned = zscore(feat_mat_pruned);
+
+        
+        anatdir = fullfile('C:\Work\ARC\ARC\',sprintf('ARC%02d',ss),'single');
+
+        if ss==3; s2 = 4; else; s2 = ss; end
+        onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
+        onsets = onsets.onsets;
+        group_vec = cell(nodor,1);
+        unity = [];
+        for ii2 = 1:nodor
+            group_vec{ii2} = ii2*ones(length(onsets{ii2}),1);
+            unity = blkdiag(unity,ones(length(onsets{ii2})));
+        end
+        group_vec = vertcat(group_vec{:});
+        [~,argsort] = sort(vertcat(onsets{:}));
+        group_vec = group_vec(argsort);
+        unity = unity(argsort,argsort);
+        utl_mask = logical(triu(ones(length(unity)),1)); % All possible odors
+        % 
+        % subplot(1,3,ss)
+        % ntrials = size(Fless_mat,1);
+        % imagesc((0:5000)/1000,1:ntrials,  Fless_mat(:,1:5001))
+        % colorbar
+        % yticks([1 ntrials/4 ntrials/2 3*ntrials/4 ntrials])
+
+        subplot(1,3,ss)
+        ntrials = size(Fless_mat,1);
+        nfeat =  size(feat_mat_pruned,2);
+        imagesc(1:nfeat,1:ntrials,  feat_mat_pruned)
+        colorbar
+        yticks([1 ntrials/4 ntrials/2 3*ntrials/4 ntrials])
+        xticks(1:nfeat)
+        xticklabels(strrep(proper_list, '_', ' '))
+        clim([-5 5])
+
+
+
+    end
+    savefig(fullfile(rootf,'snifftraces_feat'))
+    print(fullfile(rootf,'snifftraces_feat'),'-dpng')
+    print(gcf,'-vector','-dsvg',[fullfile(pwd,'schematics_feat'),'.svg']) % svg
+end

@@ -2,13 +2,14 @@ function miValues = SFP_computeTimePointMI(originalData, reconstructedData, numB
     % Number of time points
     T = size(originalData, 2);
     miValues = zeros(1, T);
-    
+    win = 200;
     % Process each time point separately
-    for t = 1:T
+    for t = 1:T-win
         % Get the data for this time point
-        orig = originalData(:, t);
-        recon = reconstructedData(:, t);
-        
+        orig = originalData(:, t+win);
+        recon = reconstructedData(:, t+win);
+        orig = orig(:);
+        recon = recon(:);
         % Bin the data
         edges = linspace(min([orig; recon]), max([orig; recon]), numBins + 1);
         orig_binned = discretize(orig, edges);

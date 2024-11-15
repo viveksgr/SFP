@@ -28,7 +28,7 @@ dirs2 = {fullfile(root,'ARC\ARC\ARC01\single');
     fullfile(root,'ARC\ARC\ARC02\single');
     fullfile(root,'ARC\ARC\ARC03\single')};
 
-savepath = 'C:\Work\SFP\Clustering\Fless_main_updated_rand\temp';
+savepath = 'C:\Work\SFP\Clustering\Fless_main_updated_rand\MI';
 maskfile =  'ARC3_anatgw.nii';
 fmaskfile = 'ARC3_fanatgw3.nii';
 
@@ -174,9 +174,7 @@ for ss = [1 2 3] % Subject
     idxmats{ss,3}= idx3;
 
     A3 = SFP_splitapply_mean(mainmat,idx3);
-    A3_corr = corrcoef(A3');
-
-    
+    A3_corr = corrcoef(A3');  
 
     [A1_info] = SFP_computeTimePointMI(mainmat, A1(idx,:),60);
     [A2_info] = SFP_computeTimePointMI(mainmat, A2(idx2,:),60);
@@ -235,7 +233,6 @@ for ss = [1 2 3] % Subject
             modelmd = modelmd(masks_set_cell{ii},:);
             noisepool = noisepool(masks_set_cell{ii});
         end
-
         
 
         S_omat_vals_r = modelmd;
@@ -278,8 +275,10 @@ for ss = [1 2 3] % Subject
 end
 
 % rsa_P1 = cellfun(@(x) (sum(x> tinv(0.95,sum(utl_mask,'all')))./length(x))*100,rsa_P1_);
-% rsa_P1 =  cellfun(@(x) mean(x),rsa_P1_);
+rsa_P1 =  cellfun(@(x) mean(x),rsa_P1_);
 % rsa_P1(3,5,:) = nan;
+p_values_3d = ARC_RSA_pvals(rsa_P1t_, rsa_P1_, nchoosek(4320,2))
+ARC_RSA_pvals_diff(rsa_P1t_, rsa_P1_, nchoosek(4320,2))
 
 rsa_P1 = rsa_P1_;
 ARC_barplot(rsa_P1)

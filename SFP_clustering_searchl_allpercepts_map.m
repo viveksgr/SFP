@@ -228,11 +228,16 @@ for ss = [1 2 3] % Subject
     close(h)
 end
 % rsa_P1 = cellfun(@(x) (sum(x> tinv(0.99,sum(utl_mask,'all')))./length(x))*100,rsa_P1_);
-rsa_P1_int = SFP_reshapeCellArray(rsa_P1_);
-rsa_P1 = cellfun(@(x) mean(sum(x>1.65,2)),rsa_P1_int);
+% rsa_P1_int = SFP_reshapeCellArray(rsa_P1_);
+rsa_P1_int = SFP_reshapeCellArray_intpls(rsa_P1_);
+rsa_P1 = cellfun(@(x) mean(sum(x>1.65,2)),rsa_P1_int); % Avg across voxels
 
-rsa_P12 = cellfun(@(x) sum(x>1.65,2),rsa_P1_int,'UniformOutput',false);
+rsa_P12 = cellfun(@(x) sum(x>1.65,2),rsa_P1_int,'UniformOutput',false); % Voxel wise
 SFP_performRepeatedMeasuresANOVA(rsa_P12)
+
+
+
+
 % rsa_P1 = cellfun(@(x) median(sum(x>3,2)),rsa_P1_int);
 
 % rsa_P1 =  cellfun(@(x) mean(x),rsa_P1_);
@@ -249,8 +254,10 @@ xticklabels(anat_names)
 for jj = 1:3
     plot(1:5,squeeze(rsa_P1(jj,:)'),'handle','off')
 end
-anova1(rsa_P1)
+% anova1(rsa_P1)
 save(fullfile(savepath,'ARC_RSA'))
+
+
 % gcf
 % % yline(r2t(0.05,length(M1_anat_vec)))
 % xticks(1:nanat)

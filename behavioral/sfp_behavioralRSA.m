@@ -8,7 +8,7 @@ if corrmat_
     settings_.nsniffcomp = 31;
     settings_.loadvec = [3 4 9:settings_.nsniffcomp];
     settings_.featorflessnot = true;
-    settings_.chem = true;
+    settings_.chem = false;
     if  settings_.chem; delfeat = 1; else; delfeat = 0; end
     rsa_pvals = zeros(3,4);
 
@@ -21,7 +21,7 @@ if corrmat_
         fullfile(root,'ARC\ARC\ARC03\single')};
 
     behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
-    savepath = 'C:\Work\SFP\Final_plots\Behavioral\Trialwise RSA\Chem';
+    savepath = 'C:\Work\SFP\Final_plots\Behavioral\Trialwise RSA\temp';
     hold on
     nconds = 4;
     rsa_P1 = zeros(3,nconds,2+delfeat);
@@ -41,7 +41,7 @@ if corrmat_
 
         Feat_mat_pruned = vertcat(feat_mat{:});
         Feat_mat_pruned =  Feat_mat_pruned(:,[settings_.loadvec]) ;
-           Feat_mat_pruned(isnan(Feat_mat_pruned))=0;
+        Feat_mat_pruned(isnan(Feat_mat_pruned))=0;
         Feat_mat_pruned = zscore(Feat_mat_pruned,1);
 
         [coeff,Feat_mat_pruned,~,~,var] = pca(Feat_mat_pruned);
@@ -133,37 +133,17 @@ if corrmat_
 
           rsa_pvals(ss,4)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
     end
+    p_values_3d = ARC_RSA_pvals(rsa_P1t, rsa_P1, sum(utl_mask(:)))
+     % p_values_3d = ARC_RSA_pvals(rsa_P1t(1,:,:), rsa_P1(1,:,:), sum(utl_mask(:)))
 
-    rsa_P1 = rsa_P1t;
 
-    S_mat = squeeze(mean(rsa_P1));
-    S_err = squeeze(std(rsa_P1))./sqrt(3);
-    figure('Position',[0.5 0.5 400 250])
-    hold on
-    ngroups = size(S_mat, 1);
-    nbars = size(S_mat, 2);
-    bar(S_mat);
-    % Calculating the width for each bar group
-    groupwidth = min(0.8, nbars/(nbars + 1.5));
-    x_m = [];
-    for i = 1:nbars
-        x = (1:ngroups) - groupwidth/2 + (2*i-1)*groupwidth/(2*nbars);
-        errorbar(x, S_mat(:,i), S_err(:,i), 'k.');
-        x_m = [x_m; x];
-    end
-    
-    % Subject data points
-    c_s = {'r','g','b'}; % Data dots for subjects
-    for ii = 1:nconds % For bars for perceptual, chemical and combinations
-        for jj = 1:3
-            plot(x_m(:,ii),squeeze(rsa_P1(jj,ii,:)),c_s{jj},'handle','off')
-        end
-    end
-    % yline(tinv(0.95,sum(utl_mask(:))))
+    ARC_barplot(rsa_P1)
+    % rsa_P1 = rsa_P1t;
     xticks(1:4)
     xticklabels({'Sniff RSA','-Int','-Pls','-Int-Pls'})
     ylabel('Representational Similarity (std. \beta)')
-    legend({'Perceptual similarity','Odor trial similarity','chemical similarity'})
+    legend({'Perceptual similarity','Odor trial similarity'})
+
     % yline(r2t(0.05,sum(utl_mask2(:))));
     % yline(r2t(0.05,nchoosek(length( group_vec),2)));
     savefig(fullfile(savepath,'fless_map'))

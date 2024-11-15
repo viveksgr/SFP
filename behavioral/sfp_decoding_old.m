@@ -1,5 +1,3 @@
-%% Find raw decodability
-
 nodor = 160;
 wind = 7500; % Number of samples
 dirs = {'C:\Work\SFP\sfp_behav_s01_correct';
@@ -9,14 +7,21 @@ dirs = {'C:\Work\SFP\sfp_behav_s01_correct';
 behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
 corrmat_ = false;
 
+svm_trainer2 = false;
+svm_trainer3 = false;
+svm_trainer4 = false;
+
 %% Basic decoding
 if corrmat_
 corrmoda = zeros(3,1,2);
+% corrmodb = zeros(3,1);
+% corrmodp = zeros(3,1);
 for ss = 1:length(dirs)
     load(fullfile(dirs{ss},'sfp_feats_main.mat'))
     Fless_mat = vertcat(fless_mat{:});
-    % Fless_mat = vertcat(feat_mat{:});
+  % Fless_mat = vertcat(feat_mat{:});
      anatdir = fullfile('C:\Work\ARC\ARC\',sprintf('ARC%02d',ss),'single');
+
     
     if ss==3; s2 = 4; else; s2 = ss; end
     onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
@@ -36,7 +41,8 @@ for ss = 1:length(dirs)
     Fless_mat_pruned = Fless_mat(:,1:wind);
     % Fless_mat_pruned = Fless_mat(:,[3 4 9:32]);
     Fless_mat_pruned(isnan(Fless_mat_pruned))=0;
-    Fless_corr = corrcoef(Fless_mat_pruned');   
+    Fless_corr = corrcoef(Fless_mat_pruned');
+    
 
     % Trials belong to same odor
     M_on = logical(unity);
@@ -59,8 +65,9 @@ for ss = 1:length(dirs)
     corrmoda(ss,1,1) = mean(Fless_corr(M_on));   
     corrmoda(ss,1,2) = mean(Fless_corr(M_off));   
     % corrmodb(ss) = std(M_mid_on-M_mid)/sqrt(4560);
-    corrmodp(ss)  = pval;
+    % corrmodp(ss)  = pval;
 end
+
 
 figure('Position',[0.5 0.5 320 240])
 rsa_P1 = corrmoda;
@@ -126,37 +133,32 @@ for ss = 1:length(dirs)
     unity = unity(argsort,argsort);
     utl_mask = logical(triu(ones(length(unity)),1)); % All possible odors
     
-    Fless_mat = vertcat(fless_mat{:});
-    Fless_mat_pruned = Fless_mat(:,1:100:wind);
+    % Fless_mat = vertcat(fless_mat{:});
+    % Fless_mat_pruned = Fless_mat(:,1:100:wind);
 
-    % Fless_mat = vertcat(feat_mat{:});
-    %  Fless_mat_pruned  = Fless_mat(:,[3 4 9:21 23:31]);
-    % % Fless_mat_pruned = Fless_mat(:,[3 4 9:31]);
-
+    Fless_mat = vertcat(feat_mat{:});
+    % Fless_mat_pruned = Fless_mat(:,[3 4 9:31]);
+     Fless_mat_pruned  = Fless_mat(:,[3 4 9:21 23:31]);
     Fless_mat_pruned(isnan(Fless_mat_pruned))=0;
     Fless_mat_pruned = zscore(Fless_mat_pruned,1);
 
-    % [coeff,Fless_mat_pruned,~,~,var] = pca(Fless_mat_pruned);
-    % Fless_mat_pruned = Fless_mat_pruned(:,1:numpcs(ss));
+    [coeff,Fless_mat_pruned,~,~,var] = pca(Fless_mat_pruned);
+    Fless_mat_pruned = Fless_mat_pruned(:,1:numpcs(ss));
     
-    % subplot(1,3,ss)
-    % plot(cumsum(var))
-    % xlim([1 25])
-    % ylim([0 100])
+    subplot(1,3,ss)
+    plot(cumsum(var))
 
     oid_ = 1:160;
     oid = oid_(group_vec)';
     
-    [~,predictions_vec] = Classify_Permute_VS2(Fless_mat_pruned, oid, 5);
+    [corrmod(ss),predictions_vec] = Classify_Permute_VS2(Fless_mat_pruned, oid, 5);
 
     % behavioral_corr
     accuracies = predictions_vec==oid;
-
-    corrmod(ss) = sum(accuracies)/length(accuracies);
     actual_behav = behav.behav(ss).ratings(group_vec,:);
-    actual_behav = actual_behav(~accuracies ,1:end);
+    actual_behav = actual_behav(~accuracies ,:);
     predicted_behav = behav.behav(ss).ratings(predictions_vec,:);
-    predicted_behav = predicted_behav(~accuracies ,1:end);
+    predicted_behav = predicted_behav(~accuracies ,:);
     predictions{ss} = iter_corr( actual_behav,predicted_behav);
 
     % Shuffle test on perceptual correlation on wrong trials
@@ -166,7 +168,7 @@ for ss = 1:length(dirs)
 
     T_shuff = mean(baseline{ss});
     t_stat = mean(predictions{ss});
-    pValue_box(ss) = 2 * min(mean(T_shuff >= t_stat), mean(T_shuff <= t_stat));
+    pValue(ss) = 2 * min(mean(T_shuff >= t_stat), mean(T_shuff <= t_stat));
 end
 end
 
@@ -182,8 +184,10 @@ ylabel('Performance')
 savefig('svm')
 print('svm','-dpng')
 toc
-p_value_svm = arrayfun(@(x) ARC_computePValueOneTailed(x, 160, 4320),corrmod);
-p_value_main_svm = ARC_computePValueOneTailed(mean(corrmod), 160, 4320);
+
+p_value = arrayfun(@(x) ARC_computePValueOneTailed(x, 160, 4320),corrmod);
+p_value_main = ARC_computePValueOneTailed(mean(corrmod), 160, 4320);
+
 
 % Boxplots
 figure()
