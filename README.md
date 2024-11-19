@@ -1,1 +1,3 @@
-# SFP
+# SFP project scripts
+
+Detailed documentation in progress ... 
