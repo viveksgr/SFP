@@ -34,7 +34,7 @@ Runtime for the demo scripts varies by the analyses but most behavioral analyses
 3. For each demo example, make sure file path for <rootf> is set as that of supporting_files.
 4. Currently, demo files are provided to recreate crucial behavioral results from decoding, behavioral RSA and multilogistic analyses.
 
-## 4. Instructions for Use and reproduction instructions:
+## 4. Instructions for Use
 To repeat the complete analyses using these scripts, acquire the complete raw [dataset](https://www.nature.com/articles/s41593-023-01414-4#data-availability):
 The following scripts should be executed in order after preprocessing:
 ### Behavioral analysis:
@@ -49,9 +49,43 @@ The following scripts should be executed in order after preprocessing:
 3. sfp_clustering_searchl: To construct searchlight based version of clustering RSA
 4. sfp_clustering_searchl_allpercepts_map: To construct searchlight based version of clustering RSA for individual descriptors
 
-The full analysis may take approximately over 24-48 hours depending on your system specifications and GLM_single settings.
+Prepare Your Data:
+Ensure your data is formatted as [describe required format].
+Place your data in the [data] folder or specify the path in the code.
+Modify Configuration:
+Edit config.m or relevant scripts to point to your data files.
+Execute Main Script:
+matlab
+Copy code
+run('main_script.m');  % Replace with actual main script name
+Adjust Parameters (if necessary):
+[Explain how to adjust parameters for different data or analyses.]
+(Optional) Reproduction Instructions
+To reproduce the results from the paper "The human brain modulates sniffs according to fine-grained perceptual features of odors" by Vivek Sagar et al.:
 
-If you encounter issues, contact sgr.vivek@gmail.com.
+Obtain the Dataset:
 
-## 5. Additional information:
-Terms of use: This content is licensed under MIT License.
+Download the dataset used in the paper from [provide link or instructions].
+Ensure compliance with any usage licenses or ethical guidelines.
+Set Up Environment:
+
+Install all software dependencies as listed above.
+Confirm that software versions match those used in the study, if possible.
+Run Analysis Scripts:
+
+Navigate to the analysis folder.
+Execute the primary analysis script:
+matlab
+Copy code
+run('analysis_script.m');  % Replace with actual script name
+Follow any additional instructions provided in the comments or accompanying documentation.
+Expected Results:
+
+The analysis should produce results similar to those reported in the paper.
+[Specify any figures, tables, or metrics that can be used for comparison.]
+Run Time for Reproduction:
+
+The full analysis may take approximately [estimated time, e.g., several hours] depending on your system specifications.
+Troubleshooting:
+
+If you encounter issues, refer to the FAQ.md or contact [contact information].

@@ -47,7 +47,6 @@ if corrmat_
         [coeff,Feat_mat_pruned,~,~,var] = pca(Feat_mat_pruned);
         Feat_mat_pruned = Feat_mat_pruned(:,1:numpcs(ss));
 
-
         onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
         onsets = onsets.onsets;
         group_vec = cell(settings_.nodor,1);
@@ -88,16 +87,13 @@ if corrmat_
             load(fullfile(statpath,'chem_corr.mat'))
             chem_corr = Behav_RSM(group_vec,group_vec);
             [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) chem_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)], A2_corr(utl_mask) );
-        end
-
-        
+        end       
         
         rsa_P1(ss,1,1:2+delfeat) = wt(2:3+delfeat);
         rsa_P1t(ss,1,1:2+delfeat) = t_sc(2:3+delfeat);
 
         
         rsa_pvals(ss,1)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
-
         if settings_.chem
             [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) chem_corr(utl_mask) int_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
         else
@@ -107,10 +103,8 @@ if corrmat_
         
         rsa_P1(ss,2,1:2+delfeat) = wt(2:3+delfeat);
         rsa_P1t(ss,2,1:2+delfeat) = t_sc(2:3+delfeat);
-
         rsa_pvals(ss,2)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
-
-        
+      
         if settings_.chem
             [wt,t_sc] = ARC_multicomputeWeights_tsc([behav_corr(utl_mask) unity(utl_mask) chem_corr(utl_mask) pls_corr(utl_mask) task_run(utl_mask) sess_run(utl_mask) set_run(utl_mask)],  A2_corr(utl_mask));
         else
@@ -119,8 +113,7 @@ if corrmat_
 
         rsa_P1(ss,3,1:2+delfeat) = wt(2:3+delfeat);
         rsa_P1t(ss,3,1:2+delfeat) = t_sc(2:3+delfeat);
-
-          rsa_pvals(ss,3)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
+        rsa_pvals(ss,3)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
 
             
         if settings_.chem
@@ -131,9 +124,9 @@ if corrmat_
         rsa_P1(ss,4,1:2+delfeat) = wt(2:3+delfeat);
         rsa_P1t(ss,4,1:2+delfeat) = t_sc(2:3+delfeat);
 
-          rsa_pvals(ss,4)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
+         rsa_pvals(ss,4)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
     end
-    p_values_3d = ARC_RSA_pvals(rsa_P1t, rsa_P1, sum(utl_mask(:)))
+    p_values_3d = ARC_RSA_pvals(rsa_P1t, rsa_P1, sum(utl_mask(:)));
      % p_values_3d = ARC_RSA_pvals(rsa_P1t(1,:,:), rsa_P1(1,:,:), sum(utl_mask(:)))
 
 
