@@ -3,9 +3,12 @@
 Exhaustive codebase to run the sniffing analyses on the NEMO dataset
 
 ## 1. System Requirements
+
 Operating System: Windows
+
 MATLAB Version: R2023B
-Dependencies:
+
+### Dependencies:
 1. [SPM12](https://www.fil.ion.ucl.ac.uk/spm/software/spm12/)
 2. [GLMSingle](https://github.com/cvnlab/GLMsingle)
 3. [Breathmetrics](https://github.com/zelanolab/breathmetrics)
