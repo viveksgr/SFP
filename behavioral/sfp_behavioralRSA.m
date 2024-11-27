@@ -108,7 +108,7 @@ if corrmat_
         rsa_P1(ss,2,1:2+delfeat) = wt(2:3+delfeat);
         rsa_P1t(ss,2,1:2+delfeat) = t_sc(2:3+delfeat);
 
-          rsa_pvals(ss,2)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
+        rsa_pvals(ss,2)=  SFP_crosspvalcalc(wt(2:3+delfeat),t_sc(2:3+delfeat),sum(utl_mask(:)));
 
         
         if settings_.chem
