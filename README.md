@@ -9,6 +9,7 @@ Dependencies:
 1. [SPM12](https://www.fil.ion.ucl.ac.uk/spm/software/spm12/)
 2. [GLMSingle](https://github.com/cvnlab/GLMsingle)
 3. [Breathmetrics](https://github.com/zelanolab/breathmetrics)
+
 The code was tested on a machine with the following recommended specifications:
 RAM: 64GB; processor: AMD Ryzen Threadripper PRO 4.00 GHz or higher;
 No non-standard hardware required.
