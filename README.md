@@ -8,7 +8,7 @@ MATLAB Version: R2023B
 Dependencies:
 1. [SPM12](https://www.fil.ion.ucl.ac.uk/spm/software/spm12/)
 2. [GLMSingle](https://github.com/cvnlab/GLMsingle)
-3, [Breathmetrics](https://github.com/zelanolab/breathmetrics)
+3. [Breathmetrics](https://github.com/zelanolab/breathmetrics)
 The code was tested on a machine with the following recommended specifications:
 RAM: 64GB; processor: AMD Ryzen Threadripper PRO 4.00 GHz or higher;
 No non-standard hardware required.
@@ -29,12 +29,12 @@ Demonstration scripts to run analyses are provided in the examples folder. The o
 Runtime for the demo scripts varies by the analyses but most behavioral analyses should be executable within an hour. 
 
 ### Instructions to Run on Demo Data
-1. Download supporting_files
+1. Clone the repository
 2. Launch MATLAB and navigate to the cloned repository.
-3. For each demo example, make sure file path for <rootf> is set as that of supporting_files.
+3. For each demo example, make sure file path for variable <rootf> is set as that of *supporting_files* in the repository.
 4. Currently, demo files are provided to recreate crucial behavioral results from decoding, behavioral RSA and multilogistic analyses.
 
-## 4. Instructions for Use and reproduction instructions:
+## 4. Instructions for Use and Reproduction:
 To repeat the complete analyses using these scripts, acquire the complete raw [dataset](https://www.nature.com/articles/s41593-023-01414-4#data-availability):
 The following scripts should be executed in order after preprocessing:
 ### Behavioral analysis:
@@ -53,5 +53,5 @@ The full analysis may take approximately over 24-48 hours depending on your syst
 
 If you encounter issues, contact sgr.vivek@gmail.com.
 
-## 5. Additional information:
+## 5. Additional Information:
 Terms of use: This content is licensed under MIT License.
