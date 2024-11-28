@@ -1,25 +1,51 @@
-%% Find raw decodability
+%--------------------------------------------------------------------------
+% SCRIPT: sfp_decoding.m
+%
+% DESCRIPTION:
+%   This script performs basic decoding analysis to assess the decodability
+%   of odor identity from sniffing data using pattern correlation analysis. 
+%   It computes correlation matrices to compare sniff traces from trials with the same odor versus different odors. 
+% 
+%   It also performs SVM classification to decode odor identity from sniffing parameters.
+%
+% BASIC INPUTS:
+%   - nodor: Number of odors (default: 160).
+%   - wind: Number of samples (default: 7500). Only when decoding is on raw
+%       traces.
+%   - dirs: Cell array containing paths to directories with sniff feature data.
+%   - behav: Behavioral data loaded from 'NEMO_perceptual2.mat'.
+%
+% BASIC OUTPUTS:
+%   - Figures illustrating:
+%       * Pattern correlations between sniffs of the same odor versus different odors.
+%       * SVM classification performance.
+%   - Variables saved to 'svmpred.mat' containing SVM predictions and performance metrics.
+% 
+% VivekSagar2016@u.northwestern.edu; Nov 27 2024
 
+% To run a demo: supply filepath for mainroot
+
+%% Basic settings
+mainroot = 'C:\Work\SFP\Scripts';
+rootf = fullfile(mainroot,'supporting_files');
+savepath = fullfile(mainroot,'\examples\example_SVM');
 nodor = 160;
 wind = 7500; % Number of samples
-dirs = {'C:\Work\SFP\sfp_behav_s01_correct';
-    'C:\Work\SFP\sfp_behav_s02_correct';
-    'C:\Work\SFP\sfp_behav_s04_correct'};
-%   color = [0.8500 0.3250 0.0980; 0.9290 0.6940 0.1250; 0.3010 0.7450 0.9330; 0 0.4470 0.7410];
-behav = load(fullfile('C:\Work\ARC\ARC\ARC','NEMO_perceptual2.mat'));
-corrmat_ = false;
+num_subjects = 3;
+behav = load(fullfile(rootf,'NEMO_perceptual2.mat'));
+corrmat_ = false; % Run featureless patten decoding. Currently not supported at demo version.
 
 %% Basic decoding
 if corrmat_
-corrmoda = zeros(3,1,2);
-for ss = 1:length(dirs)
-    load(fullfile(dirs{ss},'sfp_feats_main.mat'))
+corrmoda = zeros(3,1,2); % Subject-wise pattern correlations
+for ss = 1:num_subjects
+    subdir = fullfile(rootf,sprintf('sfp_behav_s%02d_correct',ss));
+    load(fullfile(subdir,'sfp_feats_main.mat'))
     Fless_mat = vertcat(fless_mat{:});
     % Fless_mat = vertcat(feat_mat{:});
-     anatdir = fullfile('C:\Work\ARC\ARC\',sprintf('ARC%02d',ss),'single');
     
     if ss==3; s2 = 4; else; s2 = ss; end
-    onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
+    onsets = load(fullfile(subdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
     onsets = onsets.onsets;
     group_vec = cell(nodor,1);
     unity = [];
@@ -62,6 +88,7 @@ for ss = 1:length(dirs)
     corrmodp(ss)  = pval;
 end
 
+% Figure plotting
 figure('Position',[0.5 0.5 320 240])
 rsa_P1 = corrmoda;
 S_mat = squeeze(mean(rsa_P1,1));
@@ -79,26 +106,21 @@ for i = 1:nbars
     errorbar(x, S_mat(:,i), S_err(:,i), 'k.');
     x_m = [x_m; x];
 end
-
-% legend({'Perceptual','Chemical','Mutual'})
-% legend()
-% Subject data points
 c_s = {'r','g','b'}; % Data dots for subjects
-
 for jj = 1:3
     plot([1 2],squeeze(rsa_P1(jj,1,:)),c_s{jj},'handle','off')
 end
 xticks([1 2])
 xticklabels({'Same odor','Different odor'})
 ylabel('Pattern correlation')
+
 end
 
-%% Decoding
+%% SVM Decoding
 nfolds = 10;
-tic
 numpcs = [13 11 11]; % 90% Variance
+svm_trainer2 = true; % Train SVM
 
-svm_trainer2 = true;
 if svm_trainer2
 corrmod = zeros(3,1);
 predictions = cell(3,1);
@@ -107,12 +129,12 @@ pvalue = zeros(3,1);
 figure()
 corrmoda = zeros(3,1,2);
 hold on
-for ss = 1:length(dirs)
-    load(fullfile(dirs{ss},'sfp_feats_main.mat')) 
-    anatdir = fullfile('C:\Work\ARC\ARC\',sprintf('ARC%02d',ss),'single');
+for ss = 1:num_subjects
+    subdir = fullfile(rootf,sprintf('sfp_behav_s%02d_correct',ss));
+    load(fullfile( subdir,'sfp_feats_main.mat')) 
      
     if ss==3; s2 = 4; else; s2 = ss; end
-    onsets = load(fullfile(anatdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
+    onsets = load(fullfile( subdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
     onsets = onsets.onsets;
     group_vec = cell(nodor,1);
     unity = [];
@@ -130,11 +152,11 @@ for ss = 1:length(dirs)
     % Fless_mat_pruned = Fless_mat(:,1:100:wind);
 
     Fless_mat = vertcat(feat_mat{:});
-     Fless_mat_pruned  = Fless_mat(:,[3 4 9:21 23:31]);
+    Fless_mat_pruned  = Fless_mat(:,[3 4 9:21 23:31]);
     % Fless_mat_pruned = Fless_mat(:,[3 4 9:31]);
 
-    % Fless_mat_pruned(isnan(Fless_mat_pruned))=0;
-    % Fless_mat_pruned = zscore(Fless_mat_pruned,1);
+    Fless_mat_pruned(isnan(Fless_mat_pruned))=0;
+    Fless_mat_pruned = zscore(Fless_mat_pruned,1);
 
     [coeff,Fless_mat_pruned,~,~,var] = pca(Fless_mat_pruned);
     Fless_mat_pruned = Fless_mat_pruned(:,1:numpcs(ss));
@@ -170,6 +192,7 @@ for ss = 1:length(dirs)
 end
 end
 
+% Basic SVM
 figure('Position',[0 0 320 240]) 
 hold on
 bar(mean(corrmod))
@@ -179,11 +202,9 @@ c_s = {'r','g','b'};
 for ss = 1:3; plot([1],corrmod(ss),c_s{ss},'Marker','.','MarkerSize',15); end 
 yline(1/160)
 ylabel('Performance')
-savefig('svm')
-print('svm','-dpng')
-toc
-p_value_svm = arrayfun(@(x) ARC_computePValueOneTailed(x, 160, 4320),corrmod);
-p_value_main_svm = ARC_computePValueOneTailed(mean(corrmod), 160, 4320);
+savefig(fullfile(savepath,'svm'))
+% print(fullfile(savepath,'svm'),'-dpng')
+
 
 % Boxplots
 figure()
@@ -197,8 +218,11 @@ p = [];
 for ii = 1:3
      p(ii) = signrank(predictions{ss});
 end
-savefig('boxp')
-print('boxp','-dpng')
+savefig(fullfile(savepath,'boxp'))
+% print('boxp','-dpng')
 
-clear unity fless_mat fless_mat_unn Fless_mat utl_mask
-save('svmpred')
+% P-value
+p_value_svm = arrayfun(@(x) ARC_computePValueOneTailed(x, 160, 4320),corrmod);
+p_value_main_svm = ARC_computePValueOneTailed(mean(corrmod), 160, 4320);
+SFP_clearLargeVariables
+% save('svmpred')
