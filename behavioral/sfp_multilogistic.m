@@ -26,9 +26,10 @@ num_descrip = 31;
 numsubjects = 3;
 mainroot = 'C:\Work\SFP\Scripts';
 rootf = fullfile(mainroot,'supporting_files');
-savepath = fullfile(mainroot,'\examples\example_multilogistic');
+savepath = fullfile(mainroot,'\examples\example_multilogistic2');
+mkdir(savepath)
 
-settings_.pcamaker = false;
+settings_.pcamaker = true;
 numpcs = [13 11 11]; % 90% Variance from each subject
 
 figure()

@@ -35,8 +35,8 @@ Runtime for the demo scripts varies by the analyses but most behavioral analyses
 ### Instructions to Run on Demo Data
 1. Clone the repository and add all dependencies to filepath
 2. Launch MATLAB and add <SFP_functions> to path
-3. For each demo example, make sure file path for variable <rootf> is set as that of *supporting_files* in the repository.
-4. Currently, demo files are provided to recreate crucial behavioral results from decoding, behavioral RSA and multilogistic analyses.
+3. For each demo example, make sure file path for variable <mainroot> is set as that of cloned repository on local machine.
+4. Currently, demo files are provided to recreate crucial behavioral results from decoding and multilogistic analyses.
 
 ## 4. Instructions for Use and Reproduction:
 To repeat the complete analyses using these scripts, acquire the complete raw [dataset](https://www.nature.com/articles/s41593-023-01414-4#data-availability):
