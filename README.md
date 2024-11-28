@@ -33,8 +33,8 @@ Demonstration scripts to run analyses are provided in the examples folder. The o
 Runtime for the demo scripts varies by the analyses but most behavioral analyses should be executable within an hour. 
 
 ### Instructions to Run on Demo Data
-1. Clone the repository
-2. Launch MATLAB and navigate to the cloned repository.
+1. Clone the repository and add all dependencies to filepath
+2. Launch MATLAB and add <SFP_functions> to path
 3. For each demo example, make sure file path for variable <rootf> is set as that of *supporting_files* in the repository.
 4. Currently, demo files are provided to recreate crucial behavioral results from decoding, behavioral RSA and multilogistic analyses.
 
@@ -52,6 +52,8 @@ The following scripts should be executed in order after preprocessing:
 2. sfp_clustering: To construct ROI based version of clustering RSA
 3. sfp_clustering_searchl: To construct searchlight based version of clustering RSA
 4. sfp_clustering_searchl_allpercepts_map: To construct searchlight based version of clustering RSA for individual descriptors
+
+*Detailed documentation for all scripts are in progress*
 
 The full analysis may take approximately over 24-48 hours depending on your system specifications and GLM_single settings.
 

@@ -126,18 +126,18 @@ for ss = 1:length(dirs)
     unity = unity(argsort,argsort);
     utl_mask = logical(triu(ones(length(unity)),1)); % All possible odors
     
-    Fless_mat = vertcat(fless_mat{:});
-    Fless_mat_pruned = Fless_mat(:,1:100:wind);
+    % Fless_mat = vertcat(fless_mat{:});
+    % Fless_mat_pruned = Fless_mat(:,1:100:wind);
 
-    % Fless_mat = vertcat(feat_mat{:});
-    %  Fless_mat_pruned  = Fless_mat(:,[3 4 9:21 23:31]);
-    % % Fless_mat_pruned = Fless_mat(:,[3 4 9:31]);
+    Fless_mat = vertcat(feat_mat{:});
+     Fless_mat_pruned  = Fless_mat(:,[3 4 9:21 23:31]);
+    % Fless_mat_pruned = Fless_mat(:,[3 4 9:31]);
 
-    Fless_mat_pruned(isnan(Fless_mat_pruned))=0;
-    Fless_mat_pruned = zscore(Fless_mat_pruned,1);
+    % Fless_mat_pruned(isnan(Fless_mat_pruned))=0;
+    % Fless_mat_pruned = zscore(Fless_mat_pruned,1);
 
-    % [coeff,Fless_mat_pruned,~,~,var] = pca(Fless_mat_pruned);
-    % Fless_mat_pruned = Fless_mat_pruned(:,1:numpcs(ss));
+    [coeff,Fless_mat_pruned,~,~,var] = pca(Fless_mat_pruned);
+    Fless_mat_pruned = Fless_mat_pruned(:,1:numpcs(ss));
     
     % subplot(1,3,ss)
     % plot(cumsum(var))
