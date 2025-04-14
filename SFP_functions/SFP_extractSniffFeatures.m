@@ -1,4 +1,4 @@
- function features = extractSniffFeatures(fless_superset, feat_superset,fs)
+ function features = SFP_extractSniffFeatures(fless_superset, feat_superset,fs)
     ntrials = size(fless_superset,1);
     samsize = size(fless_superset,2);
     

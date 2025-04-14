@@ -33,15 +33,17 @@ nodor = 160;
 wind = 7500; % Number of samples
 num_subjects = 3;
 behav = load(fullfile(rootf,'NEMO_perceptual2.mat'));
-corrmat_ = false; % Run featureless patten decoding. Currently not supported at demo version.
+corrmat_ = true; % Run featureless patten decoding. Currently not supported at demo version.
 
 %% Basic decoding
 if corrmat_
+    maindir = 'C:\Work\SFP';
+    sig_decorrelate = false;
 corrmoda = zeros(3,1,2); % Subject-wise pattern correlations
 for ss = 1:num_subjects
-    subdir = fullfile(rootf,sprintf('sfp_behav_s%02d_correct',ss));
+    subdir = fullfile(maindir,sprintf('sfp_behav_s%02d_correct',ss));
     load(fullfile(subdir,'sfp_feats_main.mat'))
-    Fless_mat = vertcat(fless_mat{:});
+    % Fless_mat = vertcat(fless_mat{:});
     % Fless_mat = vertcat(feat_mat{:});
     
     if ss==3; s2 = 4; else; s2 = ss; end
@@ -60,6 +62,12 @@ for ss = 1:num_subjects
     utl_mask = logical(triu(ones(length(unity)),1)); % All possible odors
     
     Fless_mat_pruned = Fless_mat(:,1:wind);
+
+    if sig_decorrelate
+     Fless_mat_pruned = sfp_decorrelate_sig(Fless_mat_pruned,group_vec,behav.behav(ss).ratings(:,1));
+     Fless_mat_pruned = sfp_decorrelate_sig(Fless_mat_pruned,group_vec,behav.behav(ss).ratings(:,2));
+    end
+
     % Fless_mat_pruned = Fless_mat(:,[3 4 9:32]);
     Fless_mat_pruned(isnan(Fless_mat_pruned))=0;
     Fless_corr = corrcoef(Fless_mat_pruned');   
@@ -113,13 +121,19 @@ end
 xticks([1 2])
 xticklabels({'Same odor','Different odor'})
 ylabel('Pattern correlation')
-
 end
 
 %% SVM Decoding
 nfolds = 10;
 numpcs = [13 11 11]; % 90% Variance
 svm_trainer2 = true; % Train SVM
+rm_trials = true;
+% Additional analyses on odor distribution
+odorlist = readtable(fullfile(rootf,'Odor_list_new.xlsx'));
+odorlist = odorlist(:,1:2);
+odorlist_out = fullfile(rootf,'Odor_list_dec.xlsx');
+odorlist = rmmissing(odorlist);
+M = containers.Map(odorlist.CID,odorlist.Odor);
 
 if svm_trainer2
 corrmod = zeros(3,1);
@@ -129,13 +143,15 @@ pvalue = zeros(3,1);
 figure()
 corrmoda = zeros(3,1,2);
 hold on
+
+tb_odor = {}; % table to store odor information of decoding
 for ss = 1:num_subjects
     subdir = fullfile(rootf,sprintf('sfp_behav_s%02d_correct',ss));
     load(fullfile( subdir,'sfp_feats_main.mat')) 
      
     if ss==3; s2 = 4; else; s2 = ss; end
-    onsets = load(fullfile( subdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets');
-    onsets = onsets.onsets;
+    onsets_mat = load(fullfile( subdir,sprintf('conditions_NEMO%02d.mat',s2)),'onsets','names');
+    onsets = onsets_mat.onsets;
     group_vec = cell(nodor,1);
     unity = [];
     for ii2 = 1:nodor
@@ -161,19 +177,35 @@ for ss = 1:num_subjects
     [coeff,Fless_mat_pruned,~,~,var] = pca(Fless_mat_pruned);
     Fless_mat_pruned = Fless_mat_pruned(:,1:numpcs(ss));
     
-    % subplot(1,3,ss)
-    % plot(cumsum(var))
-    % xlim([1 25])
-    % ylim([0 100])
-
-    oid_ = 1:160;
+    oid_ = 1:nodor;
     oid = oid_(group_vec)';
     
     [~,predictions_vec] = Classify_Permute_VS2(Fless_mat_pruned, oid, 5);
 
     % behavioral_corr
     accuracies = predictions_vec==oid;
+    
+    % distribution of accuracies
+    oid_groups = findgroups(oid);
+    accuracy_dist = splitapply(@mean, accuracies, oid_groups);
+    [~,argsort] = sort( accuracy_dist,'descend');
+    odorids = cellfun(@(x) str2num(x), onsets_mat.names,'UniformOutput',false);
+    odorids = vertcat(odorids{:});
+    odorids = odorids(argsort);
+    cell_str = cell(nodor,1); for oid_ = 1:nodor; cell_str{oid_} = M(odorids(oid_)); end
+    tb_odor{ss} = table(odorids, cell_str, accuracy_dist(argsort), ...
+                      'VariableNames', {'CID', 'Odor', 'Accuracy'});
+    % writetable( tb_odor{ss}, odorlist_out, 'Sheet', sprintf('Sheet%d', ss));
 
+    % if remove trials with high accuracy
+    if rm_trials
+        oid_rm = find(accuracy_dist >0.2);
+        trial_rm = ismember(group_vec,oid_rm);
+        [~,predictions_vec] = Classify_Permute_VS2(Fless_mat_pruned(~trial_rm,:), oid(~trial_rm), 5);
+        accuracies = predictions_vec== oid(~trial_rm);
+    end
+
+    % Accuracies
     corrmod(ss) = sum(accuracies)/length(accuracies);
     actual_behav = behav.behav(ss).ratings(group_vec,:);
     actual_behav = actual_behav(~accuracies ,1:end);
@@ -189,6 +221,15 @@ for ss = 1:num_subjects
     T_shuff = mean(baseline{ss});
     t_stat = mean(predictions{ss});
     pValue_box(ss) = 2 * min(mean(T_shuff >= t_stat), mean(T_shuff <= t_stat));
+
+    subplot(1,3,ss)
+    hold on
+    histogram(accuracy_dist)
+    if ss==1
+        ylabel('Number odors')
+    elseif ss==2
+        xlabel('Mean accuracy')
+    end
 end
 end
 
@@ -204,7 +245,6 @@ yline(1/160)
 ylabel('Performance')
 savefig(fullfile(savepath,'svm'))
 % print(fullfile(savepath,'svm'),'-dpng')
-
 
 % Boxplots
 figure()
@@ -225,4 +265,4 @@ savefig(fullfile(savepath,'boxp'))
 p_value_svm = arrayfun(@(x) ARC_computePValueOneTailed(x, 160, 4320),corrmod);
 p_value_main_svm = ARC_computePValueOneTailed(mean(corrmod), 160, 4320);
 SFP_clearLargeVariables
-% save('svmpred')
+save('svmpred')

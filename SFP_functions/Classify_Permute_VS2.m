@@ -33,7 +33,6 @@ for trl_idx = 1 : nfolds
 
     % Regression:
     % mdl = svmtrain( trainY,  trainX, '-s 3 -t 2 -c 1 -q');
-
     % eval( ['mdl = svmtrain( l1( :, 1), mat( l1( :, 2), :), '' ', opt.svm, ''');']);
     tmp = svmpredict(  testY , testX ,  mdl, ' -q ');
     predictions(testind_log) = tmp;
@@ -41,4 +40,5 @@ for trl_idx = 1 : nfolds
 end % leave-one-out
 % p_accu=mean(pred_val);
 p_accu = fastcorr(predictions,grp);
+% p_accu = sum(predictions == grp) / length(grp);
 

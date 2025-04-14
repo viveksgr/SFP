@@ -6,6 +6,8 @@ switcher = 'basic'; %'basic', 'int' or 'pls';
 if corrmat_
     nodor = 160;
     wind = 75; % Number of samples
+    t_idx = 1:dwnsample:7500;
+    win = 50;
     dirs = {'C:\Work\SFP\sfp_behav_s01_correct';
         'C:\Work\SFP\sfp_behav_s02_correct';
         'C:\Work\SFP\sfp_behav_s04_correct'};
@@ -62,7 +64,7 @@ if corrmat_
             case 'pls'
                 rpls = regressmeout(behav_ratings(:,[1 3:end])',repmat(behav_ratings(:,2)',17,1));
                 rpls = rpls(:,group_vec);
-                b1 = corrcoef(rpls);9*
+                b1 = corrcoef(rpls);
             otherwise
                 error('Wrong condition')
         end
@@ -72,7 +74,12 @@ if corrmat_
         fprintf('\n')
         for jj = 1:wind
             fprintf('|')
-            Fless_corr = -abs(Fless_mat_pruned(:,jj)-Fless_mat_pruned(:,jj)');
+            % Fless_corr = -abs(Fless_mat_pruned(:,jj)-Fless_mat_pruned(:,jj)');
+             % Fless_corr = corrcoef(Fless_mat(:,t_idx(jj):t_idx(jj)+win)');
+
+            Fless_corr = -pdist(Fless_mat(:,t_idx(jj):t_idx(jj)+win));
+            Fless_corr = squareform(Fless_corr);
+
             [wt2,t_sc2] = ARC_multicomputeWeights_tsc(DM_mat, Fless_corr(utl_mask));
             corrmod(ss,jj) = wt2(2);
             corrmod_t(ss,jj) = t_sc2(2);
@@ -99,12 +106,12 @@ for ii = 1:3
     main_t(~sig_t)=nan;
     plot((1:wind)/10,main_t,'Linestyle',"-",'LineWidth',2)
 
-    plot((1:wind)/10,corrmodu(ii,:),'g','LineWidth',0.2)
-    t_thr = tinv(0.975,nsig(ii));
-    sig_t = corrmodu_t(ii,:)>t_thr;
-    main_t = corrmodu(ii,:);
-    main_t(~sig_t)=nan;
-    plot((1:wind)/10,main_t,'Linestyle','g',"-",'LineWidth',2)
+    % plot((1:wind)/10,corrmodu(ii,:),'g','LineWidth',0.2)
+    % t_thr = tinv(0.975,nsig(ii));
+    % sig_t = corrmodu_t(ii,:)>t_thr;
+    % main_t = corrmodu(ii,:);
+    % main_t(~sig_t)=nan;
+    % plot((1:wind)/10,main_t,'Linestyle','g',"-",'LineWidth',2)
 
     ylabel('RSA performance')
     yyaxis left
