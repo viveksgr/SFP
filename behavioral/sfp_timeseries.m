@@ -125,6 +125,7 @@ print('RSA_maintrace_subwise','-dpng')
 print(gcf,'-vector','-dsvg',[fullfile(pwd,'RSA_maintrace_subwise'),'.svg']) % svg
 
 figure('Position',[0.5 0.5 640 480])
+[corrmod_t_adj, ~,~] = fdr_t_scores(corrmod_t,[sum(utl_mask(:)) sum(utl_mask(:)) sum(utl_mask(:))] );
 SFP_resetfigs
 hold on
 yyaxis left
@@ -133,18 +134,18 @@ ylabel('Sniff Trace')
 yyaxis right
 
 plot((1:wind)/10,mean(corrmod,1))
-sig_t = corrmod_t>t_thr;
+sig_t = corrmod_t_adj>t_thr;
 sig_t = sum(sig_t,1)>=2;
 main_t = mean(corrmod,1);
 main_t(~sig_t)=nan;
 plot((1:wind)/10,main_t,'Linestyle',"-",'LineWidth',2)
 
-plot((1:wind)/10,mean(corrmodu,1),'g')
-sig_t = corrmodu_t>t_thr;
-sig_t = sum(sig_t,1)>=2;
-main_t = mean(corrmodu,1);
-main_t(~sig_t)=nan;
-plot((1:wind)/10,main_t,'g','Linestyle',"-",'LineWidth',2)
+% plot((1:wind)/10,mean(corrmodu,1),'g')
+% sig_t = corrmodu_t>t_thr;
+% sig_t = sum(sig_t,1)>=2;
+% main_t = mean(corrmodu,1);
+% main_t(~sig_t)=nan;
+% plot((1:wind)/10,main_t,'g','Linestyle',"-",'LineWidth',2)
 
 ylabel('RSA performance')
 legend({'Sniff','Perceptual Similarity'})

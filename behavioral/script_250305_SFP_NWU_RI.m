@@ -102,7 +102,7 @@ else
     end
 end
 odor_id{k_id} = odor_order';
-save('sfp_data.mat','feat_mat','fless_mat','odor_id')
+save('sfp_data_temp.mat','feat_mat','fless_mat','odor_id')
 
 % 
 % load('/Volumes/Lab_Common/SFP_common/BehavioralFollowUp/behavioralData/odor_sniffMod_results_250305_SFP_NWU_RI/250305_SFP_NWU_RI_results_run1.mat','results','task_vars'); % load run 1 results
