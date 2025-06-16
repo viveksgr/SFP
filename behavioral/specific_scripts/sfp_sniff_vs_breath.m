@@ -93,7 +93,7 @@ errorbar(mean(corr_mat'),std(corr_mat')/sqrt(12),'.')
 for zz = 1:8
     plot(ones(1,12)*zz,corr_mat(zz,:),'.k')
 end
-yline(r2t(0.05,mean(num_tr)))
+yline(r2t(0.001,mean(num_tr)))
 xticks(1:8)
 xtickangle(45)
 xticklabels(proper_list([3:4 9:14]))
