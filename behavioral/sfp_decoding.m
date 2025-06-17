@@ -33,8 +33,9 @@ nodor = 160;
 wind = 7500; % Number of samples
 num_subjects = 3;
 behav = load(fullfile(rootf,'NEMO_perceptual2.mat'));
-corrmat_ = true; % Run featureless patten decoding. Currently not supported at demo version.
+corrmat_ = false; % Run featureless patten decoding. Currently not supported at demo version.
 sig_clean = true;
+
 %% Basic decoding
 if corrmat_
     maindir = 'C:\Work\SFP';

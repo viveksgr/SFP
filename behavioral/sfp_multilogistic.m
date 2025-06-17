@@ -21,13 +21,13 @@
 %% Multilogistic regression
 
 % Sniffing modulation
-grp_ = true; % Runs multilogistic model based on group-wise data
+grp_ = false; % Runs multilogistic model based on group-wise data instead of individual subjects
 num_descrip = 31;
 numsubjects = 3;
 mainroot = 'C:\Work\SFP\Scripts';
 rootf = fullfile(mainroot,'supporting_files');
 % savepath = fullfile(mainroot,'\examples\example_multilogistic2');
-savepath = 'C:\Work\SFP\Review1\Multilogistic\dream';
+savepath = 'C:\Work\SFP\Scripts\examples\example_multilogistic';
 mkdir(savepath)
 
 settings_.pcamaker = true;
