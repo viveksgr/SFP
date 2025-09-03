@@ -1,7 +1,7 @@
 %% Basic decoding
+% Load 
+
 nS = 3;
-
-
 corrmod = zeros(nS,1);
 predictions = cell(nS,1);
 baseline = cell(nS,1);

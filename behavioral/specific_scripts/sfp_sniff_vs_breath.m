@@ -11,7 +11,7 @@ for ii = 1:4
     RI_data = ReadLabChartMat(datname);
 
     R = RI_data.data{4};
-    R = smoothdata(R,'movmean',2500)';
+    R = smoothdata(R,'movmean',100)';
     K.RT = 1/1000;
     K.row = ones(length(R),1);
     K.HParam = 50;
@@ -78,7 +78,7 @@ savefig(fullfile(savepath,'svm'))
 % R = zscore(R);
 % plot(R)
 % 
-plot(S)
+% plot(S)
 figure()
 hold on
 yyaxis left
